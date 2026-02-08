@@ -1,0 +1,41 @@
+.board-card {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #e1e5e9;
+}
+
+.board-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.board-title {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #172b4d;
+}
+
+.board-description {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #5e6c84;
+  line-height: 1.4;
+}
+
+.board-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #5e6c84;
+}
+
+.board-members,
+.board-date {
+  font-size: 12px;
+}
