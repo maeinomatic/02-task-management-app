@@ -84,8 +84,8 @@ const cardsSlice = createSlice({
       state.error = null;
     },
     // Optimistic updates for drag and drop
-    moveCard: (state, action: PayloadAction<{ cardId: string; sourceListId: string; destinationListId: string; newPosition: number }>) => {
-      const { cardId, sourceListId, destinationListId, newPosition } = action.payload;
+    moveCard: (state, action: PayloadAction<{ cardId: string; destinationListId: string; newPosition: number }>) => {
+      const { cardId, destinationListId, newPosition } = action.payload;
       const cardIndex = state.cards.findIndex(card => card.id === cardId);
 
       if (cardIndex !== -1) {

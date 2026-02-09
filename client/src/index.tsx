@@ -9,6 +9,7 @@ import reportWebVitals from './reportWebVitals';
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
+console.log('index.tsx loaded, mounting React...');
 root.render(
   <React.StrictMode>
     <Provider store={store}>
