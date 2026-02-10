@@ -1,135 +1,191 @@
-#### Connecting to a Remote/Production PostgreSQL Instance
+# 📋 Task Management App
 
-If you are deploying or connecting to a managed PostgreSQL service (such as Railway, Supabase, Neon, AWS RDS, Azure, or DigitalOcean):
+A modern Trello-like project management application with drag-and-drop functionality, PostgreSQL persistence, and a clean TypeScript architecture.
 
-1. Obtain the connection string from your cloud provider. It will look like:
-   ```
-   DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>
-   ```
-   Example:
-   ```
-   DATABASE_URL=postgresql://admin:supersecret@dbhost.example.com:5432/proddb
-   ```
+## ✨ Features
 
-2. Update your `.env` file in the `server` folder with the new connection string.
+- **📊 Board Management:** Create and manage multiple project boards
+- **🎯 Task Organization:** Drag-and-drop cards between columns
+- **💾 Data Persistence:** PostgreSQL database with Prisma v7 ORM
+- **🔍 REST API:** Full CRUD operations with Express v5
+- **📝 TypeScript:** End-to-end type safety for frontend and backend
+- **🐛 Debugging:** VS Code integration with breakpoint support
+- **🐳 Docker:** Containerized PostgreSQL with persistent volumes
 
-3. Make sure your server can access the database host (check firewall, VPC, or network settings).
+## 🛠️ Tech Stack
 
-4. For production, always use strong passwords and restrict access to trusted IPs.
+### Frontend
+- **React 19** with Vite
+- **TypeScript 5.9**
+- **Redux Toolkit** for state management
+- **Axios** for API calls
 
-5. Run migrations and seed data as needed:
-   ```sh
-   npm run migrate
-   npm run seed
-   ```
+### Backend
+- **Node.js v25** with Express v5
+- **TypeScript 5.9** with ESM modules
+- **Prisma v7** ORM with PostgreSQL adapter
+- **PostgreSQL 15** in Docker
+- **Swagger** API documentation
 
-6. If using SSL (recommended for production), your connection string may require additional parameters, e.g.:
+### Development Tools
+- **Docker Compose** for database
+- **VS Code** debugging with source maps
+- **nodemon** for hot-reloading
+
+## 📁 Project Structure
+
+```
+02-task-management-app/
+├── client/                  # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── store/          # Redux store
+│   │   └── services/       # API services
+│   └── package.json
+├── server/                  # Express backend
+│   ├── src/
+│   │   ├── controllers/    # Request handlers
+│   │   ├── repositories/   # Database layer (Prisma)
+│   │   ├── routes/         # API routes
+│   │   └── index.ts        # Server entry
+│   ├── prisma/
+│   │   └── schema.prisma   # Database schema
+│   ├── dist/               # Compiled output
+│   └── package.json
+├── docker-compose.yml       # PostgreSQL setup
+├── ONBOARDING.md           # Developer setup guide
+└── README.md               # This file
+```
+
+## 🚀 Quick Start
+
+**New to this project?** Check out the [ONBOARDING.md](./ONBOARDING.md) guide for complete setup instructions.
+
+**TL;DR:**
+```bash
+# 1. Start PostgreSQL
+docker-compose up -d
+
+# 2. Setup server
+cd server
+npm install
+npx prisma generate
+npm run build
+
+# 3. Setup client
+cd ../client
+npm install
+
+# 4. Run both
+# Terminal 1: npm run start:dev (in server/)
+# Terminal 2: npm run dev (in client/)
+```
+
+## 🎯 API Endpoints
+
+### Boards
+- `GET /api/boards` - List all boards
+- `GET /api/boards/:id` - Get board by ID
+- `POST /api/boards` - Create new board
+- `DELETE /api/boards/:id` - Delete board
+
+### Cards
+- `GET /api/cards` - List all cards
+- `POST /api/cards` - Create new card
+- `PATCH /api/cards/:id` - Update card
+- `DELETE /api/cards/:id` - Delete card
+
+**📖 API Documentation:** Visit `http://localhost:5000/api-docs` when the server is running.
+
+## 🗄️ Database
+
+The app uses **PostgreSQL 15** with **Prisma v7**:
+- Schema: Board → BoardColumn → Card (one-to-many relationships)
+- Data persists in Docker named volumes (survives container restarts)
+- Connection managed via `@prisma/adapter-pg` with connection pooling
+
+### Database Schema
+```prisma
+Board {
+  id, title, description, ownerId, members[], 
+  createdAt, updatedAt, columns[]
+}
+
+BoardColumn {
+  id, title, boardId, position,
+  createdAt, updatedAt, cards[]
+}
+
+Card {
+  id, title, description, listId, position,
+  assigneeId, dueDate, labels[],
+  createdAt, updatedAt
+}
+```
+
+## 🔧 Development
+
+### Debugging in VS Code
+Press **F5** to start debugging with breakpoints:
+- Configurations available in `.vscode/launch.json`
+- Set breakpoints in TypeScript files
+- Source maps enable stepping through original code
+
+### Environment Variables
+- **Development:** `.env.development` in `server/`
+- **Test:** `.env.test` in `server/`
+- **Production:** `.env.production` in `server/`
+
+Required variables:
+```env
+DATABASE_URL=postgresql://devuser:devpass@localhost:5432/taskdb
+USE_IN_MEMORY=false
+NODE_ENV=development
+PORT=5000
+```
+
+## 🚢 Deployment
+
+### Production Database Setup
+
+When deploying to production (Railway, Supabase, Neon, AWS RDS, etc.):
+
+1. **Get connection string** from your provider:
    ```
    DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>?sslmode=require
    ```
 
-Refer to your provider's documentation for exact details.
-# Task Management App
+2. **Update `prisma.config.ts`** with production URL or use environment variable
 
-A Trello-like project management application with drag-and-drop functionality, real-time updates, and team collaboration.
-
-## Features
-
-- Create projects and boards
-- Drag-and-drop task cards
-- Real-time collaboration (WebSockets)
-- Task assignments and due dates
-- Comments on tasks
-- Activity logging
-- Team workspaces
-- Priority levels and labels
-
-## Tech Stack
-
-- **Frontend:** React, React Beautiful DnD
-- **Backend:** Node.js, Express, Socket.io
-- **Database:** PostgreSQL
-- **Real-time:** WebSockets (Socket.io)
-
-## Project Structure
-
-```
-├── client/              # React frontend
-├── server/              # Express backend
-├── README.md
-└── package.json
-```
-
-## Getting Started
-
-### Prerequisites
-- Node.js 16+
-- PostgreSQL
-
-#### (Recommended) Local PostgreSQL with Docker
-
-You can run a local PostgreSQL database using Docker Compose. This is the easiest way to get started without installing PostgreSQL directly:
-
-1. Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed.
-2. In the project root, run:
-   ```sh
-   docker compose up -d
-   ```
-   This will start a PostgreSQL server with:
-   - user: `devuser`
-   - password: `devpass`
-   - database: `taskdb`
-   - port: `5432`
-
-3. Your backend `.env` should use:
-   ```
-   DATABASE_URL=postgresql://devuser:devpass@localhost:5432/taskdb
-   ```
-
-4. To stop the database:
-   ```sh
-   docker compose down
-   ```
-
-You can use any PostgreSQL client to connect with these credentials.
-
-### Installation
-
-1. Clone the repository
-2. Install dependencies:
+3. **Run Prisma commands** on deployment:
    ```bash
-   npm install
+   npx prisma generate
+   npx prisma db push  # Or use migrations
    ```
 
-3. Create `.env` file in server folder:
-   ```
-   DATABASE_URL=your_postgres_uri
-   JWT_SECRET=your_jwt_secret
-   PORT=5000
-   ```
+4. **Security checklist:**
+   - ✅ Use SSL connections (`?sslmode=require`)
+   - ✅ Strong passwords
+   - ✅ IP allowlist/firewall rules
+   - ✅ Environment variables (never commit credentials)
 
-4. Run database migrations:
-   ```bash
-   npm run migrate
-   ```
+### Recommended Hosting
+- **Frontend:** Vercel, Netlify
+- **Backend:** Railway, Render, Fly.io
+- **Database:** Supabase, Neon, Railway Postgres
 
-5. Run development server:
-   ```bash
-   npm run dev
-   ```
+## 📚 Additional Documentation
 
-## Key Features Implementation
+- [ONBOARDING.md](./ONBOARDING.md) - Complete developer setup guide
+- [POSTGRESQL_PLAN.md](./POSTGRESQL_PLAN.md) - Database architecture plan
 
-- Drag-and-drop with React Beautiful DnD
-- Real-time updates with Socket.io
-- WebSocket events for card movements
-- Optimistic UI updates
+## 🤝 Contributing
 
-## Deployment
+1. Follow the onboarding guide to set up your environment
+2. Create a feature branch
+3. Write tests if applicable
+4. Submit a pull request
 
-- Frontend: Vercel
-- Backend: Railway
-
-## License
+## 📄 License
 
 MIT
