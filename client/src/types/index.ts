@@ -7,7 +7,7 @@ export interface User {
   createdAt: string;
 }
 
-export interface Board {
+export interface BoardModel {
   id: string;
   title: string;
   description?: string;
@@ -26,7 +26,7 @@ export interface List {
   updatedAt: string;
 }
 
-export interface Card {
+export interface CardModel {
   id: string;
   title: string;
   description?: string;
@@ -103,20 +103,20 @@ export interface DragResult {
 
 // Component props types
 export interface BoardCardProps {
-  board: Board;
-  onClick: (board: Board) => void;
+  board: BoardModel;
+  onClick: (board: BoardModel) => void;
 }
 
 export interface ListProps {
   list: List;
-  cards: Card[];
-  onCardClick: (card: Card) => void;
+  cards: CardModel[];
+  onCardClick: (card: CardModel) => void;
   onAddCard: (listId: string) => void;
 }
 
 export interface CardProps {
-  card: Card;
-  onClick: (card: Card) => void;
+  card: CardModel;
+  onClick: (card: CardModel) => void;
 }
 
 // Form types

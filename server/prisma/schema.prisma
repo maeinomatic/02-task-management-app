@@ -1,0 +1,47 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+model Board {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  ownerId     String?
+  members     String[]  @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  columns     BoardColumn[]
+}
+
+model BoardColumn {
+  id        Int      @id @default(autoincrement())
+  title     String
+  boardId   Int
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  board     Board    @relation(fields: [boardId], references: [id])
+  cards     Card[]
+}
+
+model Card {
+  id         Int      @id @default(autoincrement())
+  title      String
+  description String?
+  listId     Int
+  position   Int      @default(0)
+  assigneeId String?
+  dueDate    DateTime?
+  labels     String[] @default([])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  column     BoardColumn @relation(fields: [listId], references: [id])
+}

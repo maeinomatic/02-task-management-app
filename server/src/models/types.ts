@@ -17,7 +17,7 @@ export interface Board {
   updatedAt: Date;
 }
 
-export interface List {
+export interface BoardColumn {
   id: string;
   title: string;
   boardId: string;
@@ -61,7 +61,7 @@ export interface CreateBoardRequest {
   description?: string;
 }
 
-export interface CreateListRequest {
+export interface CreateColumnRequest {
   title: string;
   boardId: string;
 }

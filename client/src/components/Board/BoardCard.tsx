@@ -1,10 +1,10 @@
 import React from 'react';
-import { Board } from '../../types';
+import { BoardModel } from '../../types';
 import './BoardCard.css';
 
 interface BoardCardProps {
-  board: Board;
-  onClick: (board: Board) => void;
+  board: BoardModel;
+  onClick: (board: BoardModel) => void;
   onDelete?: (id: string) => void;
 }
 

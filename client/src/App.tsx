@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store/store';
 import { fetchBoards, deleteBoard } from './store/slices/boardsSlice';
 import { BoardCard } from './components/Board';
-import { Board } from './types';
+import { BoardModel } from './types';
 import './App.css';
 import CreateBoardModal from './components/CreateBoardModal';
 
@@ -15,7 +15,7 @@ function App() {
     dispatch(fetchBoards());
   }, [dispatch]);
 
-  const handleBoardClick = (board: Board) => {
+  const handleBoardClick = (board: BoardModel) => {
     console.log('Selected board:', board);
     // TODO: Navigate to board view
   };
