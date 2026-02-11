@@ -6,11 +6,12 @@ A modern Trello-like project management application with drag-and-drop functiona
 
 - **📊 Board Management:** Create and manage multiple project boards
 - **🎯 Task Organization:** Drag-and-drop cards between columns
-- **💾 Data Persistence:** PostgreSQL database with Prisma v7 ORM
-- **🔍 REST API:** Full CRUD operations with Express v5
-- **📝 TypeScript:** End-to-end type safety for frontend and backend
-- **🐛 Debugging:** VS Code integration with breakpoint support
+- **💾 Data Persistence:** PostgreSQL database with SQLx
+- **🔍 REST API:** Full CRUD operations with Axum
+- **📝 Type Safety:** Rust's compile-time guarantees and SQLx query verification
+- **🐛 Debugging:** Rust analyzer integration
 - **🐳 Docker:** Containerized PostgreSQL with persistent volumes
+- **📚 API Docs:** Auto-generated OpenAPI/Swagger documentation
 
 ## 🛠️ Tech Stack
 
@@ -21,16 +22,16 @@ A modern Trello-like project management application with drag-and-drop functiona
 - **Axios** for API calls
 
 ### Backend
-- **Node.js v25** with Express v5
-- **TypeScript 5.9** with ESM modules
-- **Prisma v7** ORM with PostgreSQL adapter
+- **Rust** (latest stable) with **Axum** web framework
+- **SQLx** for PostgreSQL access
+- **utoipa** for OpenAPI/Swagger generation
 - **PostgreSQL 15** in Docker
-- **Swagger** API documentation
+- **Swagger UI** with embedded assets
 
 ### Development Tools
 - **Docker Compose** for database
-- **VS Code** debugging with source maps
-- **nodemon** for hot-reloading
+- **cargo-watch** for hot-reloading
+- **Rust analyzer** for IDE support
 
 ## 📁 Project Structure
 
@@ -42,16 +43,15 @@ A modern Trello-like project management application with drag-and-drop functiona
 │   │   ├── store/          # Redux store
 │   │   └── services/       # API services
 │   └── package.json
-├── server/                  # Express backend
+├── server/                  # Rust/Axum backend
 │   ├── src/
-│   │   ├── controllers/    # Request handlers
-│   │   ├── repositories/   # Database layer (Prisma)
+│   │   ├── handlers/       # Request handlers
 │   │   ├── routes/         # API routes
-│   │   └── index.ts        # Server entry
-│   ├── prisma/
-│   │   └── schema.prisma   # Database schema
-│   ├── dist/               # Compiled output
-│   └── package.json
+│   │   ├── models/         # Data models
+│   │   ├── db.rs           # Database connection
+│   │   └── main.rs         # Server entry
+│   ├── target/             # Build output (git ignored)
+│   └── Cargo.toml          # Rust dependencies
 ├── docker-compose.yml       # PostgreSQL setup
 ├── ONBOARDING.md           # Developer setup guide
 └── README.md               # This file
@@ -68,16 +68,14 @@ docker-compose up -d
 
 # 2. Setup server
 cd server
-npm install
-npx prisma generate
-npm run build
+cargo build
 
 # 3. Setup client
 cd ../client
 npm install
 
 # 4. Run both
-# Terminal 1: npm run start:dev (in server/)
+# Terminal 1: cargo run (in server/)
 # Terminal 2: npm run dev (in client/)
 ```
 
@@ -95,41 +93,45 @@ npm install
 - `PATCH /api/cards/:id` - Update card
 - `DELETE /api/cards/:id` - Delete card
 
-**📖 API Documentation:** Visit `http://localhost:5000/api-docs` when the server is running.
+**📖 API Documentation:** Visit `http://localhost:5000/swagger` when the server is running.
 
 ## 🗄️ Database
 
-The app uses **PostgreSQL 15** with **Prisma v7**:
+The app uses **PostgreSQL 15** with **SQLx**:
 - Schema: Board → BoardColumn → Card (one-to-many relationships)
 - Data persists in Docker named volumes (survives container restarts)
-- Connection managed via `@prisma/adapter-pg` with connection pooling
+- Type-safe SQL queries with compile-time verification
+- Async connection pooling with Tokio runtime
 
 ### Database Schema
-```prisma
+```sql
 Board {
-  id, title, description, ownerId, members[], 
-  createdAt, updatedAt, columns[]
+  id (UUID), title, description, owner_id, members[], 
+  created_at, updated_at, columns[]
 }
 
 BoardColumn {
-  id, title, boardId, position,
-  createdAt, updatedAt, cards[]
+  id (UUID), title, board_id, position,
+  created_at, updated_at, cards[]
 }
 
 Card {
-  id, title, description, listId, position,
-  assigneeId, dueDate, labels[],
-  createdAt, updatedAt
+  id (UUID), title, description, list_id, position,
+  assignee_id, due_date, labels[],
+  created_at, updated_at
 }
 ```
 
 ## 🔧 Development
 
-### Debugging in VS Code
-Press **F5** to start debugging with breakpoints:
-- Configurations available in `.vscode/launch.json`
-- Set breakpoints in TypeScript files
-- Source maps enable stepping through original code
+### Building and Running
+```bash
+cd server
+cargo build          # Debug build
+cargo build --release  # Optimized release build
+cargo run            # Build and run
+cargo watch -x run   # Auto-reload on changes
+```
 
 ### Environment Variables
 - **Development:** `.env.development` in `server/`
@@ -139,28 +141,26 @@ Press **F5** to start debugging with breakpoints:
 Required variables:
 ```env
 DATABASE_URL=postgresql://devuser:devpass@localhost:5432/taskdb
-USE_IN_MEMORY=false
-NODE_ENV=development
 PORT=5000
+RUST_LOG=info
 ```
 
 ## 🚢 Deployment
 
 ### Production Database Setup
 
-When deploying to production (Railway, Supabase, Neon, AWS RDS, etc.):
+When deploying to production (Railway, Fly.io, AWS RDS, etc.):
 
 1. **Get connection string** from your provider:
    ```
    DATABASE_URL=postgresql://<user>:<password>@<host>:<port>/<database>?sslmode=require
    ```
 
-2. **Update `prisma.config.ts`** with production URL or use environment variable
+2. **Set environment variable** in your hosting platform
 
-3. **Run Prisma commands** on deployment:
+3. **Build in release mode:**
    ```bash
-   npx prisma generate
-   npx prisma db push  # Or use migrations
+   cargo build --release
    ```
 
 4. **Security checklist:**
@@ -168,16 +168,17 @@ When deploying to production (Railway, Supabase, Neon, AWS RDS, etc.):
    - ✅ Strong passwords
    - ✅ IP allowlist/firewall rules
    - ✅ Environment variables (never commit credentials)
+   - ✅ Build with `--release` flag for optimizations
 
 ### Recommended Hosting
 - **Frontend:** Vercel, Netlify
-- **Backend:** Railway, Render, Fly.io
+- **Backend:** Fly.io, Railway, Render
 - **Database:** Supabase, Neon, Railway Postgres
 
 ## 📚 Additional Documentation
 
 - [ONBOARDING.md](./ONBOARDING.md) - Complete developer setup guide
-- [POSTGRESQL_PLAN.md](./POSTGRESQL_PLAN.md) - Database architecture plan
+- [SWAGGER_ANALYSIS.md](./SWAGGER_ANALYSIS.md) - Swagger/OpenAPI implementation details
 
 ## 🤝 Contributing
 

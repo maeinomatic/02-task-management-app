@@ -13,3 +13,5 @@ yarn-error.log*
 .next/
 out/
 .cache/
+target/
+server/target/

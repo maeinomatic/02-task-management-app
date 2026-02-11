@@ -6,6 +6,7 @@ Welcome! This guide will help you set up the Task Management App on your local m
 
 Before you begin, ensure you have the following installed:
 
+- **Rust** (latest stable) - [Install rustup](https://rustup.rs/)
 - **Node.js** (v18 or higher) - [Download here](https://nodejs.org/)
 - **npm** (comes with Node.js)
 - **Docker Desktop** - [Download here](https://www.docker.com/products/docker-desktop/)
@@ -41,55 +42,45 @@ docker ps
 ```
 You should see the PostgreSQL container running.
 
-### 3. Install Server Dependencies
-
-Navigate to the server directory and install dependencies:
-
-```bash
-cd server
-npm install
-```
-
-### 4. Setup Environment Variables
+### 3. Setup Environment Variables
 
 Create a `.env.development` file in the `server` directory with the following content:
 
 ```env
 DATABASE_URL=postgresql://devuser:devpass@localhost:5432/taskdb
-USE_IN_MEMORY=false
-NODE_ENV=development
 PORT=5000
+RUST_LOG=info
 ```
 
-### 5. Generate Prisma Client
+**Note:** The `.env` file is already in `.gitignore` and will not be committed.
 
-Prisma is our ORM for database access. Generate the client with:
+### 4. Apply Database Schema
 
-```bash
-npx prisma generate
-```
-
-This reads the schema from `prisma/schema.prisma` and generates the TypeScript types.
-
-### 6. Apply Database Schema
-
-The database schema has already been created (Board, BoardColumn, Card tables). If you need to verify or recreate the schema, you can connect to the database:
+The database schema needs to be created. Connect to the database:
 
 ```bash
 docker exec -it 02-task-management-app-db-1 psql -U devuser -d taskdb
 ```
 
-Then run the schema commands if needed (usually not required for the first setup).
+Then run the schema commands (if not already applied). The schema SQL is in the codebase documentation.
 
-### 7. Build the Server
+### 5. Build the Rust Server
 
-Compile the TypeScript code:
+Navigate to the server directory and build the project:
 
 ```bash
-npm run build
+cd server
+cargo build
 ```
 
-### 8. Install Client Dependencies
+This will:
+- Download and compile all Rust dependencies
+- Compile the server binary
+- Place the executable in `target/debug/`
+
+**Note:** The first build may take a few minutes as Rust compiles all dependencies.
+
+### 6. Install Client Dependencies
 
 Open a new terminal, navigate to the client directory, and install dependencies:
 
@@ -105,15 +96,26 @@ npm install
 From the `server` directory:
 
 ```bash
-npm run start:dev
+cargo run
 ```
 
 The server will run on `http://localhost:5000`
 
-**Alternative:** You can also use VS Code debugging:
-- Press `F5` in VS Code
-- Select "Debug App 2 Server" from the configurations
-- Set breakpoints in your TypeScript files
+**For faster rebuilds during development:**
+```bash
+cargo build && cargo run
+```
+
+**With hot-reload (using cargo-watch):**
+```bash
+# Install cargo-watch first (one-time)
+cargo install cargo-watch
+
+# Then run with auto-reload
+cargo watch -x run
+```
+
+**API Documentation:** Visit `http://localhost:5000/swagger` for interactive Swagger UI
 
 ### Start the Frontend Client
 
@@ -131,6 +133,8 @@ The client will run on `http://localhost:3000`
 2. The frontend should load
 3. Try creating a new board - it should persist in PostgreSQL
 4. Check the server logs to see database queries
+5. Visit `http://localhost:5000/swagger` to explore the API with Swagger UI
+6. Visit `http://localhost:5000/api-doc/openapi.json` to see the OpenAPI specification
 
 ## 📚 Project Structure
 
@@ -139,16 +143,15 @@ The client will run on `http://localhost:3000`
 ├── client/                 # React frontend (Vite + TypeScript)
 │   ├── src/
 │   └── package.json
-├── server/                 # Express backend (Node.js + TypeScript)
+├── server/                 # Rust backend (Axum + SQLx)
 │   ├── src/
-│   │   ├── controllers/   # Request handlers
-│   │   ├── repositories/  # Database access layer
+│   │   ├── handlers/      # Request handlers
 │   │   ├── routes/        # API routes
-│   │   └── index.ts       # Server entry point
-│   ├── prisma/
-│   │   └── schema.prisma  # Database schema
-│   ├── dist/              # Compiled JavaScript (generated)
-│   └── package.json
+│   │   ├── models/        # Data models
+│   │   ├── db.rs          # Database connection
+│   │   └── main.rs        # Server entry point
+│   ├── target/            # Compiled binaries (git ignored)
+│   └── Cargo.toml         # Rust dependencies
 ├── docker-compose.yml      # PostgreSQL setup
 └── .vscode/
     └── launch.json         # VS Code debug configurations
@@ -159,11 +162,12 @@ The client will run on `http://localhost:3000`
 ### Server Commands (from `server/` directory)
 
 ```bash
-npm run build              # Compile TypeScript to JavaScript
-npm run start:dev          # Run in development mode (auto-rebuild)
-npm run start              # Run compiled JavaScript
-npx prisma generate        # Regenerate Prisma client
-npx prisma studio          # Open Prisma Studio (database GUI)
+cargo build                # Compile in debug mode
+cargo build --release      # Compile in release mode (optimized)
+cargo run                  # Build and run
+cargo check                # Check for errors without building
+cargo clean                # Remove build artifacts
+cargo watch -x run         # Auto-reload on file changes (requires cargo-watch)
 ```
 
 ### Client Commands (from `client/` directory)
@@ -214,43 +218,66 @@ lsof -ti:5000 | xargs kill -9
    docker exec -it 02-task-management-app-db-1 psql -U devuser -d taskdb
    ```
 
-### Prisma Client Not Found
+### Rust Compilation Errors
 
-If you get "Cannot find module '@prisma/client'":
-
-```bash
-cd server
-npm install
-npx prisma generate
-```
-
-### TypeScript Build Errors
-
-Clean and rebuild:
+If you get compilation errors:
 
 ```bash
 cd server
-rm -rf dist node_modules
-npm install
-npm run build
+cargo clean
+cargo update
+cargo build
 ```
+
+### Missing Cargo or Rust
+
+If `cargo` command is not found:
+
+**Install Rust:**
+```bash
+# Visit https://rustup.rs/ or run:
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Then restart your terminal
+```
+
+**Verify installation:**
+```bash
+rustc --version
+cargo --version
+```
+
+### Swagger UI Not Loading
+
+If you can't access Swagger UI at `/swagger`:
+
+1. Ensure the server is built with the `debug-embed` feature (already configured in `Cargo.toml`)
+2. Check that the server is running on port 5000
+3. Try accessing the OpenAPI JSON directly at `/api-doc/openapi.json`
+4. Check server logs for any errors
 
 ## 🔐 Environment Variables
 
 ### Server Environment Files
 
-- `.env.development` - Development environment (loaded by VS Code debugger)
+- `.env.development` - Development environment
 - `.env.test` - Test environment (if you add tests)
 - `.env.production` - Production environment
+
+**Required variables:**
+- `DATABASE_URL` - PostgreSQL connection string
+- `PORT` - Server port (default: 5000)
+- `RUST_LOG` - Log level (trace, debug, info, warn, error)
 
 **Never commit these files to Git!** They are in `.gitignore`.
 
 ## 🎯 Next Steps
 
-- Read the [PostgreSQL Plan](./POSTGRESQL_PLAN.md) to understand the database architecture
-- Explore the API at `http://localhost:5000/api-docs` (Swagger UI)
-- Set breakpoints in VS Code and use the debugger to understand the code flow
+- Explore the API at `http://localhost:5000/swagger` (Swagger UI)
+- Review the OpenAPI specification at `http://localhost:5000/api-doc/openapi.json`
 - Check existing API endpoints in `server/src/routes/`
+- Review the Rust handlers in `server/src/handlers/`
+- Read the database schema documentation
 
 ## 📞 Getting Help
 

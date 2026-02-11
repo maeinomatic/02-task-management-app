@@ -18,7 +18,7 @@ pub fn router() -> Router<DbPool> {
 }
 
 #[derive(Deserialize)]
-struct CardsQuery {
+pub(crate) struct CardsQuery {
     list_id: Option<i32>,
 }
 

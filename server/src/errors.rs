@@ -11,6 +11,7 @@ pub enum AppError {
     DatabaseError(sqlx::Error),
     NotFound(String),
     ValidationError(String),
+    #[allow(dead_code)]
     InternalError(String),
 }
 

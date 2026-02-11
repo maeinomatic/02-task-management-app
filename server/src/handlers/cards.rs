@@ -83,14 +83,6 @@ pub async fn update_card(
     id: i32,
     req: UpdateCardRequest,
 ) -> Result<Card, AppError> {
-    // Build dynamic update query
-    let mut query = String::from("UPDATE card SET ");
-    let mut updates: Vec<String> = Vec::new();
-    let mut bind_values: Vec<Box<dyn sqlx::Encode<'_, sqlx::Postgres> + Send + Sync>> = Vec::new();
-
-    // This is a simplified version - in production you'd use a query builder
-    // For now, we'll do a simpler approach with fixed fields
-    
     // Fetch current card first
     let current_card = get_card_by_id(pool, id).await?;
     
