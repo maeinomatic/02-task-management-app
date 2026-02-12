@@ -20,7 +20,7 @@
    Within each column, fetch and display cards using `get_cards_by_column_id`. Add forms for creating, editing, and deleting cards. Connect to card CRUD endpoints and update Redux for real-time UI updates.
 
 6. **Add Drag-and-Drop Functionality**  
-   Integrate a drag-and-drop library (e.g., `react-beautiful-dnd` or `@dnd-kit/core`) to move cards between columns and reorder within columns. On drop, call PATCH endpoints to update card positions (add if not present).
+   Integrate a drag-and-drop to move cards between columns and reorder within columns. On drop, call PATCH endpoints to update card positions (add if not present).
 
 7. **Enhance Redux Store**  
    Expand the Redux store to manage boards, columns, and cards state. Add thunks for async API calls and selectors for efficient data access. Handle loading/error states for better UX.
@@ -38,5 +38,5 @@
 ## Decisions
 
 - No new tables/endpoints needed initially; leverage existing ones. Add position update endpoints (PATCH for cards/columns) if drag-and-drop requires it.
-- Use `react-beautiful-dnd` for drag-and-drop due to simplicity and React compatibility.
+- Use own drag-and-drop implementation for simplicity and React compatibility.
 - Prioritize board/column/card CRUD before advanced features like sharing or real-time updates.
