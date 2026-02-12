@@ -67,6 +67,11 @@ async fn main() {
             routes::cards::create_card,
             routes::cards::update_card,
             routes::cards::delete_card,
+            routes::columns::get_lists,
+            routes::columns::get_list,
+            routes::columns::create_list,
+            routes::columns::update_list,
+            routes::columns::delete_list,
         ),
         components(schemas(
             models::Board,
@@ -76,10 +81,14 @@ async fn main() {
             models::UpdateBoardRequest,
             models::CreateCardRequest,
             models::UpdateCardRequest,
+            models::CreateColumnRequest,
+            models::UpdateColumnRequest,
             models::ApiResponse<models::Board>,
             models::ApiResponse<Vec<models::Board>>,
             models::ApiResponse<models::Card>,
             models::ApiResponse<Vec<models::Card>>,
+            models::ApiResponse<models::BoardColumn>,
+            models::ApiResponse<Vec<models::BoardColumn>>,
         ))
     )]
     struct ApiDoc;
@@ -89,6 +98,7 @@ async fn main() {
         .route("/api/health", get(health_check))
         .nest("/api/boards", routes::boards::router())
         .nest("/api/cards", routes::cards::router())
+        .nest("/api/lists", routes::columns::router())
         .merge(SwaggerUi::new("/swagger").url("/api/openapi.json", ApiDoc::openapi()))
         .with_state(db_pool)
         .layer(cors);

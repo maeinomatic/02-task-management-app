@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store/store';
-import { fetchBoards, deleteBoard } from './store/slices/boardsSlice';
+import { fetchBoards, deleteBoard, setCurrentBoard } from './store/slices/boardsSlice';
 import { BoardCard } from './components/Board';
 import { BoardModel } from './types';
 import './App.css';
 import CreateBoardModal from './components/CreateBoardModal';
+import BoardView from './pages/BoardView';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
-  const { boards, loading, error } = useSelector((state: RootState) => state.boards);
+  const { boards, loading, error, currentBoard } = useSelector((state: RootState) => state.boards);
 
   useEffect(() => {
     dispatch(fetchBoards());
   }, [dispatch]);
 
   const handleBoardClick = (board: BoardModel) => {
-    console.log('Selected board:', board);
-    // TODO: Navigate to board view
+    dispatch(setCurrentBoard(board));
   };
 
 
@@ -43,27 +43,33 @@ function App() {
 
         {error && <div className="text-center text-red-600">Error: {error}</div>}
 
-        {!loading && !error && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
-            {boards.length === 0 ? (
-              <div className="col-span-full text-center bg-white p-8 rounded shadow">
-                <h2 className="text-lg font-semibold mb-2">No boards yet</h2>
-                <p className="mb-4 text-gray-500">Create your first board to get started!</p>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" onClick={handleCreateBoard}>
-                  Create Board
-                </button>
+        {currentBoard ? (
+          <BoardView />
+        ) : (
+          <>
+            {!loading && !error && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-6">
+                {boards.length === 0 ? (
+                  <div className="col-span-full text-center bg-white p-8 rounded shadow">
+                    <h2 className="text-lg font-semibold mb-2">No boards yet</h2>
+                    <p className="mb-4 text-gray-500">Create your first board to get started!</p>
+                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" onClick={handleCreateBoard}>
+                      Create Board
+                    </button>
+                  </div>
+                ) : (
+                  boards.map((board) => (
+                    <BoardCard
+                      key={board.id}
+                      board={board}
+                      onClick={handleBoardClick}
+                      onDelete={handleDeleteBoard}
+                    />
+                  ))
+                )}
               </div>
-            ) : (
-              boards.map((board) => (
-                <BoardCard
-                  key={board.id}
-                  board={board}
-                  onClick={handleBoardClick}
-                  onDelete={handleDeleteBoard}
-                />
-              ))
             )}
-          </div>
+          </>
         )}
       </main>
       {/* Always render the modal at the root, not inside grid/conditionals */}
