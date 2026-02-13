@@ -104,7 +104,9 @@ const BoardView: React.FC = () => {
           })).unwrap();
         }),
       );
-    } catch {
+    } catch (error) {
+      console.error('Failed to update cards after drag-and-drop:', error);
+      window.alert('Unable to move card(s). The board has been reloaded to restore the previous state.');
       dispatch(fetchCards(sourceListId));
       if (destListId !== sourceListId) dispatch(fetchCards(destListId));
     }
