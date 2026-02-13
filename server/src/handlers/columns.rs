@@ -91,6 +91,19 @@ pub async fn update_column(pool: &DbPool, id: i32, req: UpdateColumnRequest) -> 
     // Fetch current column
     let current = get_column_by_id(pool, id).await?;
 
+    // If a new board_id is provided, validate that the board exists
+    if let Some(new_board_id) = req.board_id {
+        let board_exists: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM board WHERE id = $1)"
+        )
+        .bind(new_board_id)
+        .fetch_one(pool)
+        .await?;
+
+        if !board_exists {
+            return Err(AppError::NotFound(format!("Board with id {} not found", new_board_id)));
+        }
+    }
     let title = req.title.unwrap_or(current.title);
     let board_id = req.board_id.unwrap_or(current.board_id);
     let position = req.position.unwrap_or(current.position);
