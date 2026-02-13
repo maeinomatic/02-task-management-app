@@ -154,7 +154,8 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
         .await?;
 
     if result.rows_affected() == 0 {
-        // Nothing deleted; roll back the transaction by not committing
+        // Explicitly roll back the transaction
+        tx.rollback().await?;
         return Err(AppError::NotFound("Column not found".to_string()));
     }
 

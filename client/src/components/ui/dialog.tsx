@@ -167,7 +167,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
     const previousActiveElement = React.useRef<HTMLElement | null>(null)
 
     // Combine refs
-    React.useImperativeHandle(ref, () => contentRef.current!)
+    React.useImperativeHandle(ref, () => contentRef.current as HTMLDivElement)
 
     // Store the previously focused element and restore it when dialog closes
     React.useEffect(() => {
@@ -214,10 +214,10 @@ const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
     // Prevent body scroll when dialog is open
     React.useEffect(() => {
       if (open) {
-        const originalStyle = window.getComputedStyle(document.body).overflow
+        const originalOverflow = document.body.style.overflow
         document.body.style.overflow = 'hidden'
         return () => {
-          document.body.style.overflow = originalStyle
+          document.body.style.overflow = originalOverflow
         }
       }
     }, [open])
