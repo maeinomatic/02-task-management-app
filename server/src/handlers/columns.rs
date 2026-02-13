@@ -143,22 +143,27 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
 
     // Delete all cards in this column first (cascade delete)
     sqlx::query("DELETE FROM card WHERE list_id = $1")
+    // Perform related deletes in a single transaction to avoid partial updates
+    let mut tx = pool.begin().await?;
+
+    // Delete all cards in this column first (cascade delete)
+    sqlx::query("DELETE FROM card WHERE list_id = $1")
         .bind(id)
-        .execute(&mut *tx)
+        .execute(&mut tx)
         .await?;
 
     // Now delete the column
     let result = sqlx::query("DELETE FROM board_column WHERE id = $1")
         .bind(id)
-        .execute(&mut *tx)
+        .execute(&mut tx)
         .await?;
 
     if result.rows_affected() == 0 {
-        // Explicitly roll back the transaction
-        tx.rollback().await?;
+        // Nothing deleted; roll back the transaction by not committing
         return Err(AppError::NotFound("Column not found".to_string()));
     }
 
+    tx.commit().await?;
     tx.commit().await?;
 
     Ok(())
