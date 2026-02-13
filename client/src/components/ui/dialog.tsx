@@ -154,12 +154,10 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
 
     if (!open) return null
 
-    // Prepare aria attributes for accessibility
-    const ariaProps: { "aria-labelledby"?: string; "aria-label"?: string } = {}
+    // Prepare aria labeling attributes for accessibility
+    const ariaLabelProps: { "aria-labelledby"?: string; "aria-label"?: string } = {}
     if (titleId) {
-      ariaProps["aria-labelledby"] = titleId
-    } else if (props["aria-label"]) {
-      ariaProps["aria-label"] = props["aria-label"]
+      ariaLabelProps["aria-labelledby"] = titleId
     }
 
     return (
@@ -169,7 +167,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
           ref={ref}
           role="dialog"
           aria-modal="true"
-          {...ariaProps}
+          {...ariaLabelProps}
           className={cn(
             "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg sm:rounded-lg",
             className
