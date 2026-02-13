@@ -119,17 +119,32 @@ const DialogClose = ({ asChild, children, onClick, ...props }: DialogCloseProps)
   )
 }
 
-const DialogOverlay = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
+type DialogOverlayProps = React.HTMLAttributes<HTMLDivElement> & {
+  /**
+   * Whether clicking on the overlay should close the dialog.
+   * Defaults to true to preserve existing behavior.
+   */
+  closeOnOverlayClick?: boolean
+}
+
+const DialogOverlay = React.forwardRef<HTMLDivElement, DialogOverlayProps>(
+  ({ className, closeOnOverlayClick = true, onClick, ...props }, ref) => {
     const { open, setOpen } = useDialogContext()
 
     if (!open) return null
+
+    const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+      onClick?.(event)
+      if (!event.defaultPrevented && closeOnOverlayClick) {
+        setOpen(false)
+      }
+    }
 
     return (
       <div
         ref={ref}
         className={cn("fixed inset-0 z-50 bg-black/80", className)}
-        onClick={() => setOpen(false)}
+        onClick={handleClick}
         {...props}
       />
     )
