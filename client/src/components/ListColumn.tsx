@@ -30,7 +30,14 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
     if (!newTitle || !newTitle.trim()) return;
     setBusy(true);
     try {
-      const listIdPayload: any = isNaN(Number(list.id)) ? list.id : Number(list.id);
+      const listIdPayload: any =
+        typeof list.id === 'number'
+          ? list.id
+          : (typeof list.id === 'string' &&
+             list.id.trim() !== '' &&
+             /^[0-9]+$/.test(list.id.trim())
+              ? Number(list.id.trim())
+              : list.id);
       await dispatch(createCard({ title: newTitle.trim(), listId: listIdPayload })).unwrap();
       setNewTitle('');
       setShowComposer(false);
