@@ -152,10 +152,54 @@ const DialogOverlay = React.forwardRef<HTMLDivElement, DialogOverlayProps>(
 )
 DialogOverlay.displayName = "DialogOverlay"
 
-const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, children, ...props }, ref) => {
-    const { open, setOpen, titleId } = useDialogContext()
+type DialogContentProps = React.HTMLAttributes<HTMLDivElement> & {
+  /**
+   * Optional aria-label for the dialog when no DialogTitle is used.
+   * If neither aria-label nor DialogTitle is provided, a default label will be used.
+   */
+  'aria-label'?: string
+}
 
+const DialogContent = React.forwardRef<HTMLDivElement, DialogContentProps>(
+  ({ className, children, 'aria-label': ariaLabel, ...props }, ref) => {
+    const { open, setOpen, titleId } = useDialogContext()
+    const contentRef = React.useRef<HTMLDivElement>(null)
+    const previousActiveElement = React.useRef<HTMLElement | null>(null)
+
+    // Combine refs
+    React.useImperativeHandle(ref, () => contentRef.current as HTMLDivElement)
+
+    // Store the previously focused element and restore it when dialog closes
+    React.useEffect(() => {
+      if (open) {
+        previousActiveElement.current = document.activeElement as HTMLElement
+        // Focus the dialog content after a brief delay to ensure it's rendered
+        requestAnimationFrame(() => {
+          contentRef.current?.focus()
+        })
+      } else if (previousActiveElement.current) {
+        previousActiveElement.current.focus()
+        previousActiveElement.current = null
+      }
+    }, [open])
+
+    // Trap focus within the dialog
+    React.useEffect(() => {
+      if (!open || !contentRef.current) return
+
+      const handleFocusTrap = (event: FocusEvent) => {
+        const target = event.target as Node
+        if (contentRef.current && !contentRef.current.contains(target)) {
+          event.preventDefault()
+          contentRef.current.focus()
+        }
+      }
+
+      document.addEventListener('focusin', handleFocusTrap)
+      return () => document.removeEventListener('focusin', handleFocusTrap)
+    }, [open])
+
+    // Handle Escape key
     React.useEffect(() => {
       if (!open) return
       const onKeyDown = (event: KeyboardEvent) => {
@@ -167,24 +211,41 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
       return () => window.removeEventListener("keydown", onKeyDown)
     }, [open, setOpen])
 
+    // Prevent body scroll when dialog is open
+    React.useEffect(() => {
+      if (open) {
+        const originalOverflow = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        return () => {
+          document.body.style.overflow = originalOverflow
+        }
+      }
+    }, [open])
+
     if (!open) return null
 
     // Prepare aria labeling attributes for accessibility
     const ariaLabelProps: { "aria-labelledby"?: string; "aria-label"?: string } = {}
     if (titleId) {
       ariaLabelProps["aria-labelledby"] = titleId
+    } else if (ariaLabel) {
+      ariaLabelProps["aria-label"] = ariaLabel
+    } else {
+      // Fallback to ensure dialog always has an accessible name
+      ariaLabelProps["aria-label"] = "Dialog"
     }
 
     return (
       <DialogPortal>
         <DialogOverlay />
         <div
-          ref={ref}
+          ref={contentRef}
           role="dialog"
           aria-modal="true"
+          tabIndex={-1}
           {...ariaLabelProps}
           className={cn(
-            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg sm:rounded-lg",
+            "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg sm:rounded-lg focus:outline-none",
             className
           )}
           onClick={(event) => event.stopPropagation()}

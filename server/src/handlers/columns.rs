@@ -126,12 +126,15 @@ pub async fn update_column(pool: &DbPool, id: i32, req: UpdateColumnRequest) -> 
 
 /// Delete a column (cascade deletes all cards in the column)
 pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
+    // Perform related deletes in a single transaction to avoid partial updates
+    let mut tx = pool.begin().await?;
+
     // Check if column exists first
     let column_exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM board_column WHERE id = $1)"
     )
     .bind(id)
-    .fetch_one(pool)
+    .fetch_one(&mut *tx)
     .await?;
 
     if !column_exists {
@@ -141,18 +144,22 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
     // Delete all cards in this column first (cascade delete)
     sqlx::query("DELETE FROM card WHERE list_id = $1")
         .bind(id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
     // Now delete the column
     let result = sqlx::query("DELETE FROM board_column WHERE id = $1")
         .bind(id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
 
     if result.rows_affected() == 0 {
+        // Explicitly roll back the transaction
+        tx.rollback().await?;
         return Err(AppError::NotFound("Column not found".to_string()));
     }
+
+    tx.commit().await?;
 
     Ok(())
 }

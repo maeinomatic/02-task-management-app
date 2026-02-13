@@ -4,6 +4,7 @@ import { RootState, AppDispatch } from '../store/store';
 import { setCurrentBoard } from '../store/slices/boardsSlice';
 import { fetchLists } from '../store/slices/listsSlice';
 import { fetchCards, moveCard, updateCard } from '../store/slices/cardsSlice';
+import { CardModel } from '../types';
 import ListColumn from '../components/ListColumn';
 import AddListForm from '../components/AddListForm';
 import { DragDropContext, DropResult } from '../dnd';
@@ -37,7 +38,7 @@ const BoardView: React.FC = () => {
   }, [lists, dispatch]);
 
   const cardsByList = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, CardModel[]> = {};
     lists.forEach(list => {
       const key = String(list.id);
       map[key] = cardsAll
@@ -97,10 +98,12 @@ const BoardView: React.FC = () => {
     try {
       await Promise.all(
         changed.map((update) => {
-          const listIdPayload: any = isNaN(Number(update.listId)) ? update.listId : Number(update.listId);
           return dispatch(updateCard({
             id: update.id,
-            updates: { listId: listIdPayload, position: update.position },
+            updates: { 
+              listId: Number(update.listId), 
+              position: update.position 
+            },
           })).unwrap();
         }),
       );

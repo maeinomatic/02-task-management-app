@@ -3,7 +3,7 @@ import { useDragDropContext } from './DragDropContext';
 import { DraggableSnapshot } from './types';
 
 type Provided = {
-  innerRef: (el: HTMLElement | null) => void;
+  innerRef: React.RefCallback<HTMLElement>;
   draggableProps: React.HTMLAttributes<HTMLElement>;
   dragHandleProps: React.HTMLAttributes<HTMLElement>;
 };
