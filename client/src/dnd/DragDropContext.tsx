@@ -45,6 +45,7 @@ export const DragDropContext: React.FC<{
   const draggablesRef = useRef(new Map<string, RegisteredDraggable>());
   const [dragState, setDragState] = useState<DragState>(null);
   const dragStateRef = useRef<DragState>(null);
+  const teardownListenersRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     dragStateRef.current = dragState;
@@ -102,6 +103,15 @@ export const DragDropContext: React.FC<{
     onDragEnd(result);
   };
 
+  useEffect(() => {
+    return () => {
+      if (teardownListenersRef.current) {
+        teardownListenersRef.current();
+      }
+      document.body.style.userSelect = '';
+    };
+  }, []);
+
   const startDrag = (draggableId: string, source: DraggableLocation, event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
 
@@ -121,13 +131,29 @@ export const DragDropContext: React.FC<{
     };
 
     const onUp = () => {
+      if (teardownListenersRef.current) {
+        teardownListenersRef.current();
+      }
+      endDrag('DROP');
+    };
+
+    const onCancel = () => {
+      if (teardownListenersRef.current) {
+        teardownListenersRef.current();
+      }
+      endDrag('CANCEL');
+    };
+
+    teardownListenersRef.current = () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
-      endDrag('DROP');
+      window.removeEventListener('pointercancel', onCancel);
+      teardownListenersRef.current = null;
     };
 
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onCancel);
   };
 
   const value = useMemo<DndContextValue>(() => ({

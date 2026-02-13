@@ -28,11 +28,8 @@ pub struct CreateColumnRequest {
 /// Request body for updating a column/list
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateColumnRequest {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "boardId")]
     pub board_id: Option<i32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub position: Option<i32>,
 }

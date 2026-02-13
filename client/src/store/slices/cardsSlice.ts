@@ -130,7 +130,7 @@ const cardsSlice = createSlice({
 
       state.cards = state.cards.map(c => {
         const upd = updatedMap.get(String(c.id));
-        if (upd) return { ...c, listId: upd.listId, position: upd.position } as any;
+        if (upd) return { ...c, listId: upd.listId, position: upd.position };
         return c;
       });
     },

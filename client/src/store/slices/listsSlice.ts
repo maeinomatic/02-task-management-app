@@ -1,14 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../api/client';
-
-export interface List {
-  id: string;
-  title: string;
-  boardId: string;
-  position: number;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { List } from '../../types';
 
 interface ListsState {
   lists: List[];
@@ -37,9 +29,13 @@ export const fetchLists = createAsyncThunk(
 
 export const createList = createAsyncThunk(
   'lists/createList',
-  async (payload: { title: string; boardId: string }, { rejectWithValue }) => {
+  async (payload: { title: string; boardId: string | number }, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/lists', payload);
+      const boardId = Number(payload.boardId);
+      const response = await api.post('/api/lists', {
+        ...payload,
+        boardId: Number.isNaN(boardId) ? payload.boardId : boardId,
+      });
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Failed to create list');

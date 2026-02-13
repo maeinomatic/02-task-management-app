@@ -11,16 +11,18 @@ const AddListForm: React.FC<Props> = ({ boardId }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setLoading(true);
+    setError(null);
     try {
       await dispatch(createList({ title, boardId })).unwrap();
       setTitle('');
-    } catch {
-      // swallow for now
+    } catch (err: any) {
+      setError(err || 'Failed to create column');
     } finally {
       setLoading(false);
     }
@@ -32,6 +34,7 @@ const AddListForm: React.FC<Props> = ({ boardId }) => {
       <div className="flex justify-end">
         <button className="px-2 py-1 bg-blue-600 text-white rounded" disabled={loading}>{loading ? 'Adding...' : 'Add'}</button>
       </div>
+      {error && <div className="text-sm text-red-600">{error}</div>}
     </form>
   );
 };

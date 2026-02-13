@@ -70,6 +70,12 @@ pub async fn create_column(pool: &DbPool, req: CreateColumnRequest) -> Result<Bo
 
 /// Update a column
 pub async fn update_column(pool: &DbPool, id: i32, req: UpdateColumnRequest) -> Result<BoardColumn, AppError> {
+    if let Some(ref title) = req.title {
+        if title.trim().is_empty() {
+            return Err(AppError::ValidationError("Title is required".to_string()));
+        }
+    }
+
     // Fetch current column
     let current = get_column_by_id(pool, id).await?;
 

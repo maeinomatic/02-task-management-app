@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { setCurrentBoard } from '../store/slices/boardsSlice';
@@ -13,13 +13,27 @@ const BoardView: React.FC = () => {
   const currentBoard = useSelector((s: RootState) => s.boards.currentBoard);
   const lists = useSelector((s: RootState) => s.lists.lists);
   const cardsAll = useSelector((s: RootState) => s.cards.cards);
+  const fetchedListIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
+    fetchedListIdsRef.current.clear();
     if (currentBoard) dispatch(fetchLists(currentBoard.id));
   }, [currentBoard, dispatch]);
 
   useEffect(() => {
-    lists.forEach(list => dispatch(fetchCards(list.id)));
+    const activeListIds = new Set(lists.map(list => String(list.id)));
+    fetchedListIdsRef.current.forEach((listId) => {
+      if (!activeListIds.has(listId)) {
+        fetchedListIdsRef.current.delete(listId);
+      }
+    });
+
+    lists.forEach((list) => {
+      const listId = String(list.id);
+      if (fetchedListIdsRef.current.has(listId)) return;
+      fetchedListIdsRef.current.add(listId);
+      dispatch(fetchCards(listId));
+    });
   }, [lists, dispatch]);
 
   const cardsByList = useMemo(() => {
