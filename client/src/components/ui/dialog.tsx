@@ -5,6 +5,8 @@ import { cn } from "../../lib/utils"
 type DialogContextValue = {
   open: boolean
   setOpen: (open: boolean) => void
+  titleId?: string
+  setTitleId: (id: string | undefined) => void
 }
 
 const DialogContext = React.createContext<DialogContextValue | null>(null)
@@ -26,6 +28,7 @@ type DialogProps = {
 
 const Dialog = ({ open, defaultOpen = false, onOpenChange, children }: DialogProps) => {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen)
+  const [titleId, setTitleId] = React.useState<string | undefined>(undefined)
   const isControlled = typeof open === "boolean"
   const resolvedOpen = isControlled ? (open as boolean) : uncontrolledOpen
 
@@ -40,7 +43,7 @@ const Dialog = ({ open, defaultOpen = false, onOpenChange, children }: DialogPro
   )
 
   return (
-    <DialogContext.Provider value={{ open: resolvedOpen, setOpen }}>
+    <DialogContext.Provider value={{ open: resolvedOpen, setOpen, titleId, setTitleId }}>
       {children}
     </DialogContext.Provider>
   )
@@ -136,7 +139,7 @@ DialogOverlay.displayName = "DialogOverlay"
 
 const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, children, ...props }, ref) => {
-    const { open, setOpen } = useDialogContext()
+    const { open, setOpen, titleId } = useDialogContext()
 
     React.useEffect(() => {
       if (!open) return
@@ -151,6 +154,14 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
 
     if (!open) return null
 
+    // Prepare aria attributes for accessibility
+    const ariaProps: { "aria-labelledby"?: string; "aria-label"?: string } = {}
+    if (titleId) {
+      ariaProps["aria-labelledby"] = titleId
+    } else if (props["aria-label"]) {
+      ariaProps["aria-label"] = props["aria-label"]
+    }
+
     return (
       <DialogPortal>
         <DialogOverlay />
@@ -158,6 +169,7 @@ const DialogContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
           ref={ref}
           role="dialog"
           aria-modal="true"
+          {...ariaProps}
           className={cn(
             "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white p-6 shadow-lg sm:rounded-lg",
             className
@@ -206,16 +218,28 @@ const DialogFooter = ({
 DialogFooter.displayName = "DialogFooter"
 
 const DialogTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
-  ({ className, ...props }, ref) => (
-    <h2
-      ref={ref}
-      className={cn(
-        "text-lg font-semibold leading-none tracking-tight",
-        className
-      )}
-      {...props}
-    />
-  )
+  ({ className, id, ...props }, ref) => {
+    const { setTitleId } = useDialogContext()
+    const generatedId = React.useId()
+    const titleId = id || generatedId
+
+    React.useEffect(() => {
+      setTitleId(titleId)
+      return () => setTitleId(undefined)
+    }, [titleId, setTitleId])
+
+    return (
+      <h2
+        ref={ref}
+        id={titleId}
+        className={cn(
+          "text-lg font-semibold leading-none tracking-tight",
+          className
+        )}
+        {...props}
+      />
+    )
+  }
 )
 DialogTitle.displayName = "DialogTitle"
 
