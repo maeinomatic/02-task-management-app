@@ -3,7 +3,7 @@ import { useDragDropContext } from './DragDropContext';
 import { DroppableSnapshot } from './types';
 
 type Provided = {
-  innerRef: (el: HTMLElement | null) => void;
+  innerRef: React.RefCallback<HTMLElement>;
   droppableProps: React.HTMLAttributes<HTMLElement>;
   placeholder: React.ReactNode;
 };

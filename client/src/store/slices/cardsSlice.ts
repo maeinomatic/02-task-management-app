@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../api/client';
+import { UpdateCardRequest } from '../../types';
 
 export interface Card {
   id: string;
@@ -55,7 +56,7 @@ export const createCard = createAsyncThunk(
 
 export const updateCard = createAsyncThunk(
   'cards/updateCard',
-  async ({ id, updates }: { id: string; updates: Partial<Card> }, { rejectWithValue }) => {
+  async ({ id, updates }: { id: string; updates: UpdateCardRequest }, { rejectWithValue }) => {
     try {
       const response = await api.put(`/api/cards/${id}`, updates);
       return response.data.data;

@@ -111,7 +111,7 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
       <Droppable droppableId={String(list.id)}>
         {(provided, snapshot) => (
           <div
-            ref={provided.innerRef as any}
+            ref={provided.innerRef}
             {...provided.droppableProps}
             className="space-y-2"
           >
@@ -124,7 +124,7 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
               >
                 {(dragProvided, dragSnapshot) => (
                   <div
-                    ref={dragProvided.innerRef as any}
+                    ref={dragProvided.innerRef}
                     {...dragProvided.draggableProps}
                     {...dragProvided.dragHandleProps}
                     data-card-id={card.id}
