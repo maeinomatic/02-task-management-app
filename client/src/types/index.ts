@@ -69,7 +69,7 @@ export interface CreateListRequest {
 
 export interface UpdateListRequest {
   title?: string;
-  boardId?: string | number;
+  boardId?: number;
   position?: number;
 }
 
