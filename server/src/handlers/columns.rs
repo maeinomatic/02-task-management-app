@@ -113,6 +113,33 @@ pub async fn update_column(pool: &DbPool, id: i32, req: UpdateColumnRequest) -> 
 
 /// Delete a column
 pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
+    // Check if column exists first
+    let column_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM board_column WHERE id = $1)"
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await?;
+
+    if !column_exists {
+        return Err(AppError::NotFound("Column not found".to_string()));
+    }
+
+    // Check if there are any cards in this column
+    let card_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM card WHERE list_id = $1"
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await?;
+
+    if card_count > 0 {
+        return Err(AppError::ValidationError(
+            format!("Cannot delete column with {} card(s). Please move or delete the cards first.", card_count)
+        ));
+    }
+
+    // Now safe to delete the column
     let result = sqlx::query("DELETE FROM board_column WHERE id = $1")
         .bind(id)
         .execute(pool)
