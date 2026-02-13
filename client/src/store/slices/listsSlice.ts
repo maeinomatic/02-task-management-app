@@ -20,7 +20,12 @@ export const fetchLists = createAsyncThunk(
     try {
       // server expects query param `board_id` for filtering
       const response = await api.get(`/api/lists?board_id=${boardId}`);
-      return response.data.data;
+      // Normalize IDs to strings to match frontend List type
+      return response.data.data.map((list: any) => ({
+        ...list,
+        id: String(list.id),
+        boardId: String(list.boardId),
+      }));
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Failed to fetch lists');
     }
@@ -36,7 +41,13 @@ export const createList = createAsyncThunk(
         ...payload,
         boardId: Number.isNaN(boardId) ? payload.boardId : boardId,
       });
-      return response.data.data;
+      // Normalize IDs to strings to match frontend List type
+      const list = response.data.data;
+      return {
+        ...list,
+        id: String(list.id),
+        boardId: String(list.boardId),
+      };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Failed to create list');
     }
@@ -48,7 +59,13 @@ export const updateList = createAsyncThunk(
   async ({ id, updates }: { id: string; updates: Partial<List> }, { rejectWithValue }) => {
     try {
       const response = await api.put(`/api/lists/${id}`, updates);
-      return response.data.data;
+      // Normalize IDs to strings to match frontend List type
+      const list = response.data.data;
+      return {
+        ...list,
+        id: String(list.id),
+        boardId: String(list.boardId),
+      };
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Failed to update list');
     }
