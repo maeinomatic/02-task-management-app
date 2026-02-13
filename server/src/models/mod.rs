@@ -4,7 +4,7 @@ pub mod column;
 
 pub use board::{Board, CreateBoardRequest, UpdateBoardRequest};
 pub use card::{Card, CreateCardRequest, UpdateCardRequest};
-pub use column::BoardColumn;
+pub use column::{BoardColumn, CreateColumnRequest, UpdateColumnRequest};
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

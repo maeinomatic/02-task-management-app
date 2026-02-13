@@ -67,6 +67,12 @@ export interface CreateListRequest {
   boardId: string;
 }
 
+export interface UpdateListRequest {
+  title?: string;
+  boardId?: number;
+  position?: number;
+}
+
 export interface CreateCardRequest {
   title: string;
   description?: string;
@@ -79,7 +85,7 @@ export interface CreateCardRequest {
 export interface UpdateCardRequest {
   title?: string;
   description?: string;
-  listId?: string;
+  listId?: number;
   position?: number;
   assigneeId?: string;
   dueDate?: string;

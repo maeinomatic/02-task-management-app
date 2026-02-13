@@ -9,13 +9,27 @@ pub struct BoardColumn {
     pub id: i32,
     pub title: String,
     #[serde(rename = "boardId")]
-    #[sqlx(rename = "boardid")]
     pub board_id: i32,
     pub position: i32,
     #[serde(rename = "createdAt")]
-    #[sqlx(rename = "createdat")]
     pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
-    #[sqlx(rename = "updatedat")]
     pub updated_at: DateTime<Utc>,
+}
+
+/// Request body for creating a column/list
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateColumnRequest {
+    pub title: String,
+    #[serde(rename = "boardId")]
+    pub board_id: i32,
+}
+
+/// Request body for updating a column/list
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateColumnRequest {
+    pub title: Option<String>,
+    #[serde(rename = "boardId")]
+    pub board_id: Option<i32>,
+    pub position: Option<i32>,
 }
