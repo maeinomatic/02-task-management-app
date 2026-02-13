@@ -67,6 +67,12 @@ export interface CreateListRequest {
   boardId: string;
 }
 
+export interface UpdateListRequest {
+  title?: string;
+  boardId?: number;
+  position?: number;
+}
+
 export interface CreateCardRequest {
   title: string;
   description?: string;

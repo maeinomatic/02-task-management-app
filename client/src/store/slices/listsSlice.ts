@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../api/client';
-import type { List } from '../../types';
+import type { List, UpdateListRequest } from '../../types';
 
 interface ListsState {
   lists: List[];
@@ -45,7 +45,7 @@ export const createList = createAsyncThunk(
 
 export const updateList = createAsyncThunk(
   'lists/updateList',
-  async ({ id, updates }: { id: string; updates: Partial<List> }, { rejectWithValue }) => {
+  async ({ id, updates }: { id: string; updates: UpdateListRequest }, { rejectWithValue }) => {
     try {
       const response = await api.put(`/api/lists/${id}`, updates);
       return response.data.data;
