@@ -47,6 +47,18 @@ pub async fn create_column(pool: &DbPool, req: CreateColumnRequest) -> Result<Bo
         return Err(AppError::ValidationError("Title is required".to_string()));
     }
 
+    // Validate that the board exists
+    let board_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM board WHERE id = $1)"
+    )
+    .bind(req.board_id)
+    .fetch_one(pool)
+    .await?;
+
+    if !board_exists {
+        return Err(AppError::NotFound(format!("Board with id {} not found", req.board_id)));
+    }
+
     let next_position: i32 = sqlx::query_scalar(
         "SELECT COALESCE(MAX(position), -1) + 1 FROM board_column WHERE board_id = $1"
     )
