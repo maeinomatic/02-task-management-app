@@ -85,22 +85,26 @@ export const DragDropContext: React.FC<{
       return { droppableId: chosen.id, index: 0 };
     }
 
-    const centers = siblings.map(item => {
-      const rect = item.element.getBoundingClientRect();
-      return {
-        centerX: rect.left + rect.width / 2,
-        centerY: rect.top + rect.height / 2,
-      };
-    });
+    // For board-columns droppable, always use horizontal axis.
+    // Otherwise, infer from sibling center spread.
+    const useHorizontalAxis = chosen.id === 'board-columns' ? true : (() => {
+      const centers = siblings.map(item => {
+        const rect = item.element.getBoundingClientRect();
+        return {
+          centerX: rect.left + rect.width / 2,
+          centerY: rect.top + rect.height / 2,
+        };
+      });
 
-    const minX = Math.min(...centers.map(c => c.centerX));
-    const maxX = Math.max(...centers.map(c => c.centerX));
-    const minY = Math.min(...centers.map(c => c.centerY));
-    const maxY = Math.max(...centers.map(c => c.centerY));
+      const minX = Math.min(...centers.map(c => c.centerX));
+      const maxX = Math.max(...centers.map(c => c.centerX));
+      const minY = Math.min(...centers.map(c => c.centerY));
+      const maxY = Math.max(...centers.map(c => c.centerY));
 
-    const horizontalSpread = maxX - minX;
-    const verticalSpread = maxY - minY;
-    const useHorizontalAxis = horizontalSpread > verticalSpread;
+      const horizontalSpread = maxX - minX;
+      const verticalSpread = maxY - minY;
+      return horizontalSpread > verticalSpread;
+    })();
 
     const index = siblings.findIndex(item => {
       const rect = item.element.getBoundingClientRect();

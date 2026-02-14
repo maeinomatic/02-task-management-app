@@ -7,6 +7,7 @@ interface ListsState {
   loading: boolean;
   error: string | null;
   previousLists: List[] | null; // Snapshot for reverting optimistic updates
+  pendingReorderRequestId: string | null; // Track the active reorder request
 }
 
 const initialState: ListsState = {
@@ -14,6 +15,7 @@ const initialState: ListsState = {
   loading: false,
   error: null,
   previousLists: null,
+  pendingReorderRequestId: null,
 };
 
 export const fetchLists = createAsyncThunk(
@@ -162,16 +164,27 @@ const listsSlice = createSlice({
       .addCase(deleteList.fulfilled, (state, action: PayloadAction<string>) => {
         state.lists = state.lists.filter(l => l.id !== action.payload);
       })
-      .addCase(reorderLists.fulfilled, (state, action: PayloadAction<List[]>) => {
-        state.lists = action.payload;
-        state.previousLists = null; // Clear snapshot on successful update
+      .addCase(reorderLists.pending, (state, action) => {
+        // Store the requestId when a reorder starts
+        state.pendingReorderRequestId = action.meta.requestId;
+      })
+      .addCase(reorderLists.fulfilled, (state, action) => {
+        // Only clear snapshot if this is the latest reorder request
+        if (state.pendingReorderRequestId === action.meta.requestId) {
+          state.lists = action.payload;
+          state.previousLists = null;
+          state.pendingReorderRequestId = null;
+        }
       })
       .addCase(reorderLists.rejected, (state, action) => {
-        state.error = action.payload as string;
-        // Revert to previous state if optimistic update failed
-        if (state.previousLists !== null) {
-          state.lists = state.previousLists;
-          state.previousLists = null;
+        // Only revert if this is the latest reorder request
+        if (state.pendingReorderRequestId === action.meta.requestId) {
+          state.error = action.payload as string;
+          if (state.previousLists !== null) {
+            state.lists = state.previousLists;
+            state.previousLists = null;
+          }
+          state.pendingReorderRequestId = null;
         }
       });
   }
