@@ -19,10 +19,6 @@ pub struct ColumnOrderUpdate {
 
 /// Bulk update column order for a board
 pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate) -> Result<Vec<BoardColumn>, AppError> {
-    if req.columns.is_empty() {
-        return Err(AppError::ValidationError("At least one column is required".to_string()));
-    }
-
     let mut tx = pool.begin().await?;
 
     // Check if the board exists
@@ -43,6 +39,24 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     .bind(req.board_id)
     .fetch_all(&mut *tx)
     .await?;
+
+    // Allow empty column arrays when board has no columns
+    if existing_ids.is_empty() && req.columns.is_empty() {
+        // Return empty result for boards with no columns
+        tx.commit().await?;
+        return Ok(vec![]);
+    }
+
+    if req.columns.is_empty() {
+        return Err(AppError::ValidationError("At least one column is required".to_string()));
+    }
+
+    // Validate that all positions are non-negative
+    if req.columns.iter().any(|c| c.position < 0) {
+        return Err(AppError::ValidationError(
+            "Position values must be non-negative".to_string(),
+        ));
+    }
 
     if existing_ids.len() != req.columns.len() {
         return Err(AppError::ValidationError(
@@ -91,14 +105,16 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     }
     query = query.bind(req.board_id);
     query.execute(&mut *tx).await?;
-    tx.commit().await?;
-    // Return updated columns
+
+    // Return updated columns within the transaction to avoid race conditions
     let updated = sqlx::query_as::<_, BoardColumn>(
         "SELECT id, title, board_id, position, created_at, updated_at FROM board_column WHERE board_id = $1 ORDER BY position ASC"
     )
     .bind(req.board_id)
-    .fetch_all(pool)
+    .fetch_all(&mut *tx)
     .await?;
+
+    tx.commit().await?;
 
     Ok(updated)
 }

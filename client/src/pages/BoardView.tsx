@@ -159,34 +159,30 @@ const BoardView: React.FC = () => {
             <AddListForm boardId={currentBoard.id} />
           </div>
 
-          <div style={{ display: 'flex', gap: 16 }}>
-            {lists.length === 0 ? (
-              <div className="text-gray-500">No columns yet</div>
-            ) : (
-              <>
-                <Droppable droppableId="board-columns">
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-4">
-                      {lists.map((list, idx) => (
-                        <Draggable key={list.id} draggableId={`column-${list.id}`} index={idx} droppableId="board-columns">
-                          {(dragProvided) => (
-                            <div ref={dragProvided.innerRef} {...dragProvided.draggableProps}>
-                              <ListColumn
-                                list={list}
-                                cards={cardsByList[String(list.id)] ?? []}
-                                dragHandleProps={dragProvided.dragHandleProps}
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </>
-            )}
-          </div>
+          {lists.length === 0 ? (
+            <div className="text-gray-500">No columns yet</div>
+          ) : (
+            <Droppable droppableId="board-columns">
+              {(provided) => (
+                <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-4">
+                  {lists.map((list, idx) => (
+                    <Draggable key={list.id} draggableId={`column-${list.id}`} index={idx} droppableId="board-columns">
+                      {(dragProvided) => (
+                        <div ref={dragProvided.innerRef} {...dragProvided.draggableProps}>
+                          <ListColumn
+                            list={list}
+                            cards={cardsByList[String(list.id)] ?? []}
+                            dragHandleProps={dragProvided.dragHandleProps}
+                          />
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          )}
         </section>
       </div>
     </DragDropContext>

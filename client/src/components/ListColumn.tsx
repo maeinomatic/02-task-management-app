@@ -63,7 +63,7 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
 
   return (
     <div className="min-w-[260px] bg-gray-100 p-3 rounded">
-      <div {...(activeDragHandleProps || {})} className={`flex items-center justify-between mb-2 ${activeDragHandleProps ? 'cursor-grab' : ''}`}>
+      <div {...(activeDragHandleProps || {})} className={`flex items-center justify-between mb-2 ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}>
         {editing ? (
           <div className="flex gap-2 items-center">
             <input value={title} onChange={e => setTitle(e.target.value)} className="border px-2 py-1 rounded" />
