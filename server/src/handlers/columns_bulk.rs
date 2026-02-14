@@ -78,6 +78,28 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
         ));
     }
 
+    // Validate that positions form a contiguous 0-based permutation [0..n-1]
+    let mut positions: Vec<i32> = req.columns.iter().map(|c| c.position).collect();
+    positions.sort_unstable();
+
+    // Ensure all positions are unique
+    let original_len = positions.len();
+    positions.dedup();
+    if positions.len() != original_len {
+        return Err(AppError::ValidationError(
+            "Position values must be unique for all columns".to_string(),
+        ));
+    }
+
+    // At this point positions is non-empty because req.columns is non-empty
+    // (validated at line 50-52)
+    let expected_max = req.columns.len() as i32 - 1;
+    if positions[0] != 0 || *positions.last().unwrap() != expected_max {
+        return Err(AppError::ValidationError(
+            "Position values must form a contiguous range starting at 0".to_string(),
+        ));
+    }
+
     // Perform bulk update in a single statement to reduce round-trips and lock time
     let mut sql = String::from(
         "UPDATE board_column AS bc \
@@ -124,7 +146,7 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
 
     // Return updated columns within the transaction to avoid race conditions
     let updated = sqlx::query_as::<_, BoardColumn>(
-        "SELECT id, title, board_id, position, created_at, updated_at FROM board_column WHERE board_id = $1 ORDER BY position ASC"
+        "SELECT id, title, board_id, position, created_at, updated_at FROM board_column WHERE board_id = $1 ORDER BY position ASC, id ASC"
     )
     .bind(req.board_id)
     .fetch_all(&mut *tx)

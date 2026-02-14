@@ -9,7 +9,7 @@ pub async fn get_all_columns(pool: &DbPool, board_id: Option<i32>) -> Result<Vec
             "SELECT id, title, board_id, position, created_at, updated_at 
              FROM board_column 
              WHERE board_id = $1
-             ORDER BY position ASC"
+             ORDER BY position ASC, id ASC"
         )
         .bind(board_id)
         .fetch_all(pool)
@@ -18,7 +18,7 @@ pub async fn get_all_columns(pool: &DbPool, board_id: Option<i32>) -> Result<Vec
         sqlx::query_as::<_, BoardColumn>(
             "SELECT id, title, board_id, position, created_at, updated_at 
              FROM board_column 
-             ORDER BY position ASC"
+             ORDER BY position ASC, id ASC"
         )
         .fetch_all(pool)
         .await?
