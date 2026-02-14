@@ -63,7 +63,7 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
 
   return (
     <div className="min-w-[260px] bg-gray-100 p-3 rounded">
-      <div {...(activeDragHandleProps || {})} className={`flex items-center justify-between mb-2 ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+      <div className="flex items-center justify-between mb-2">
         {editing ? (
           <div className="flex gap-2 items-center">
             <input value={title} onChange={e => setTitle(e.target.value)} className="border px-2 py-1 rounded" />
@@ -87,7 +87,14 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
           </div>
         ) : (
           <>
-            <h3 className="font-semibold">{list.title}</h3>
+            <div className="flex items-center gap-2">
+              <div {...(activeDragHandleProps || {})} className={`flex items-center ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+              </div>
+              <h3 className="font-semibold">{list.title}</h3>
+            </div>
             <div className="flex items-center gap-2">
               <div className="text-sm text-gray-600">{cards.length}</div>
               <button className="text-sm text-blue-600" onClick={() => setEditing(true)}>Edit</button>
