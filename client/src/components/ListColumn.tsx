@@ -136,6 +136,8 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
             className="space-y-2"
           >
             {cards.map((card, index) => (
+              // Cards use 'card-' prefix in draggableId to distinguish them from columns.
+              // This prefix is stripped in BoardView's onDragEnd handler to get the actual card ID.
               <Draggable
                 key={card.id}
                 draggableId={`card-${String(card.id)}`}
