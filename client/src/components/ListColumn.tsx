@@ -91,7 +91,7 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
               <button
                 type="button"
                 {...(activeDragHandleProps || {})}
-                className={`flex items-center ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                className={`flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}
                 aria-label={activeDragHandleProps ? 'Drag to reorder column' : undefined}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
