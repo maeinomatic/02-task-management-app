@@ -104,7 +104,15 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
         query = query.bind(col.id).bind(col.position);
     }
     query = query.bind(req.board_id);
-    query.execute(&mut *tx).await?;
+    let result = query.execute(&mut *tx).await?;
+    
+    // Verify that all requested columns were updated
+    let expected_rows = req.columns.len() as u64;
+    if result.rows_affected() != expected_rows {
+        // At least one requested column was not updated (likely deleted concurrently).
+        // Treat this as an error so we don't return a partially-updated set.
+        return Err(sqlx::Error::RowNotFound.into());
+    }
 
     // Return updated columns within the transaction to avoid race conditions
     let updated = sqlx::query_as::<_, BoardColumn>(
