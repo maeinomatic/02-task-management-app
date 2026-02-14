@@ -39,19 +39,20 @@ const getDistanceToRect = (x: number, y: number, rect: DOMRect) => {
   return Math.hypot(dx, dy);
 };
 
-const detectAxisFromSiblings = (siblings: RegisteredDraggable[]): boolean => {
-  const centers = siblings.map(item => {
-    const rect = item.element.getBoundingClientRect();
-    return {
-      centerX: rect.left + rect.width / 2,
-      centerY: rect.top + rect.height / 2,
-    };
-  });
+type SiblingWithRect = {
+  item: RegisteredDraggable;
+  rect: DOMRect;
+  centerX: number;
+  centerY: number;
+};
 
-  const minX = Math.min(...centers.map(c => c.centerX));
-  const maxX = Math.max(...centers.map(c => c.centerX));
-  const minY = Math.min(...centers.map(c => c.centerY));
-  const maxY = Math.max(...centers.map(c => c.centerY));
+const detectAxisFromSiblings = (siblingsWithRects: SiblingWithRect[]): boolean => {
+  if (siblingsWithRects.length === 0) return false;
+
+  const minX = Math.min(...siblingsWithRects.map(s => s.centerX));
+  const maxX = Math.max(...siblingsWithRects.map(s => s.centerX));
+  const minY = Math.min(...siblingsWithRects.map(s => s.centerY));
+  const maxY = Math.max(...siblingsWithRects.map(s => s.centerY));
 
   const horizontalSpread = maxX - minX;
   const verticalSpread = maxY - minY;
@@ -104,21 +105,28 @@ export const DragDropContext: React.FC<{
       return { droppableId: chosen.id, index: 0 };
     }
 
+    // Compute rects and centers once for all siblings to avoid repeated layout reads
+    const siblingsWithRects: SiblingWithRect[] = siblings.map(item => {
+      const rect = item.element.getBoundingClientRect();
+      return {
+        item,
+        rect,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+      };
+    });
+
     // For board-columns droppable, always use horizontal axis.
     // Otherwise, infer from sibling center spread.
     const useHorizontalAxis = chosen.id === 'board-columns' 
       ? true 
-      : detectAxisFromSiblings(siblings);
+      : detectAxisFromSiblings(siblingsWithRects);
 
-    const index = siblings.findIndex(item => {
-      const rect = item.element.getBoundingClientRect();
+    const index = siblingsWithRects.findIndex(s => {
       if (useHorizontalAxis) {
-        const centerX = rect.left + rect.width / 2;
-        return x < centerX;
+        return x < s.centerX;
       }
-
-      const centerY = rect.top + rect.height / 2;
-      return y < centerY;
+      return y < s.centerY;
     });
 
     return {
