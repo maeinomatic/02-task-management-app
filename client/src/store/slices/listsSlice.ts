@@ -107,11 +107,12 @@ const listsSlice = createSlice({
     // local optimistic reorder (accepts array of list ids in desired order)
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
       const idOrder = new Set(action.payload);
+      const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
 
       // First, add lists in the order specified by the payload, ignoring unknown IDs
       action.payload.forEach((id) => {
-        const existing = state.lists.find((l) => l.id === id);
+        const existing = listsById.get(id);
         if (existing) {
           ordered.push(existing);
         }
