@@ -115,6 +115,18 @@ const listsSlice = createSlice({
       const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
 
+      // Validate: check for unknown IDs in payload
+      const unknownIds = action.payload.filter(id => !listsById.has(id));
+      if (unknownIds.length > 0) {
+        console.warn(`reorderListsLocal: Payload contains unknown list IDs: ${unknownIds.join(', ')}`);
+      }
+
+      // Validate: check for lists in state not mentioned in payload
+      const unmentionedIds = state.lists.filter(list => !idOrder.has(list.id)).map(l => l.id);
+      if (unmentionedIds.length > 0) {
+        console.warn(`reorderListsLocal: State contains list IDs not in payload: ${unmentionedIds.join(', ')}`);
+      }
+
       // First, add lists in the order specified by the payload, ignoring unknown IDs
       action.payload.forEach((id) => {
         const existing = listsById.get(id);
