@@ -16,8 +16,8 @@ use crate::models::{ApiResponse, BoardColumn, CreateColumnRequest, UpdateColumnR
 pub fn router() -> Router<DbPool> {
     Router::new()
         .route("/", get(get_lists).post(create_list))
+        .route("/bulk-order", axum::routing::patch(bulk_update_column_order))
         .route("/:id", get(get_list).put(update_list).delete(delete_list))
-    .route("/bulk-order", axum::routing::patch(bulk_update_column_order))
 }
 
 #[derive(Deserialize)]

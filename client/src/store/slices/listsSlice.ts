@@ -143,6 +143,9 @@ const listsSlice = createSlice({
       })
       .addCase(reorderLists.fulfilled, (state, action: PayloadAction<List[]>) => {
         state.lists = action.payload;
+      })
+      .addCase(reorderLists.rejected, (state, action) => {
+        state.error = action.payload as string;
       });
   }
 });
