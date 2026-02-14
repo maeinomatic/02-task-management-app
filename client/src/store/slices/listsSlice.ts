@@ -64,7 +64,11 @@ export const reorderLists = createAsyncThunk(
   async (payload: { boardId: string; orderedIds: string[] }, { rejectWithValue }) => {
     try {
       const columns = payload.orderedIds.map((id, idx) => ({ id: Number(id), position: idx }));
-      const response = await api.patch('/api/lists/bulk-order', { boardId: Number(payload.boardId), columns });
+      const numericBoardId = Number(payload.boardId);
+      const response = await api.patch('/api/lists/bulk-order', {
+        boardId: Number.isNaN(numericBoardId) ? payload.boardId : numericBoardId,
+        columns,
+      });
       const lists = response.data.data;
       return lists.map((l: any) => ({ ...l, id: String(l.id), boardId: String(l.boardId) }));
     } catch (error: any) {
