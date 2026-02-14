@@ -17,6 +17,8 @@ type DragState = {
   draggableId: string;
   source: DraggableLocation;
   destination: DraggableLocation | null;
+  pointerOffset: { x: number; y: number };
+  draggableSize: { width: number; height: number };
 } | null;
 
 type DndContextValue = {
@@ -51,8 +53,17 @@ export const DragDropContext: React.FC<{
     dragStateRef.current = dragState;
   }, [dragState]);
 
-  const computeDestination = (x: number, y: number, draggingId: string): DraggableLocation | null => {
-    const droppables = Array.from(droppablesRef.current.values());
+  const computeDestination = (
+    x: number,
+    y: number,
+    draggingId: string,
+    sourceDroppableId: string,
+  ): DraggableLocation | null => {
+    const allDroppables = Array.from(droppablesRef.current.values());
+    const droppables = sourceDroppableId === 'board-columns'
+      ? allDroppables.filter(d => d.id === 'board-columns')
+      : allDroppables.filter(d => d.id !== 'board-columns');
+
     if (droppables.length === 0) return null;
 
     const inside = droppables.filter(d => {
@@ -74,8 +85,30 @@ export const DragDropContext: React.FC<{
       return { droppableId: chosen.id, index: 0 };
     }
 
+    const centers = siblings.map(item => {
+      const rect = item.element.getBoundingClientRect();
+      return {
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+      };
+    });
+
+    const minX = Math.min(...centers.map(c => c.centerX));
+    const maxX = Math.max(...centers.map(c => c.centerX));
+    const minY = Math.min(...centers.map(c => c.centerY));
+    const maxY = Math.max(...centers.map(c => c.centerY));
+
+    const horizontalSpread = maxX - minX;
+    const verticalSpread = maxY - minY;
+    const useHorizontalAxis = horizontalSpread > verticalSpread;
+
     const index = siblings.findIndex(item => {
       const rect = item.element.getBoundingClientRect();
+      if (useHorizontalAxis) {
+        const centerX = rect.left + rect.width / 2;
+        return x < centerX;
+      }
+
       const centerY = rect.top + rect.height / 2;
       return y < centerY;
     });
@@ -115,16 +148,51 @@ export const DragDropContext: React.FC<{
   const startDrag = (draggableId: string, source: DraggableLocation, event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
 
-    const initialDestination = computeDestination(event.clientX, event.clientY, draggableId);
-    setDragState({ draggableId, source, destination: initialDestination });
-    dragStateRef.current = { draggableId, source, destination: initialDestination };
+    const draggable = draggablesRef.current.get(draggableId);
+    const draggableRect = draggable?.element.getBoundingClientRect();
+
+    const pointerOffset = draggableRect
+      ? { x: event.clientX - draggableRect.left, y: event.clientY - draggableRect.top }
+      : { x: 0, y: 0 };
+
+    const draggableSize = draggableRect
+      ? { width: draggableRect.width, height: draggableRect.height }
+      : { width: 0, height: 0 };
+
+    const centerX = event.clientX - pointerOffset.x + draggableSize.width / 2;
+    const centerY = event.clientY - pointerOffset.y + draggableSize.height / 2;
+
+    const initialDestination = computeDestination(
+      centerX,
+      centerY,
+      draggableId,
+      source.droppableId,
+    );
+    const initialState = {
+      draggableId,
+      source,
+      destination: initialDestination,
+      pointerOffset,
+      draggableSize,
+    };
+    setDragState(initialState);
+    dragStateRef.current = initialState;
 
     document.body.style.userSelect = 'none';
 
     const onMove = (ev: PointerEvent) => {
       const current = dragStateRef.current;
       if (!current) return;
-      const destination = computeDestination(ev.clientX, ev.clientY, current.draggableId);
+
+      const centerX = ev.clientX - current.pointerOffset.x + current.draggableSize.width / 2;
+      const centerY = ev.clientY - current.pointerOffset.y + current.draggableSize.height / 2;
+
+      const destination = computeDestination(
+        centerX,
+        centerY,
+        current.draggableId,
+        current.source.droppableId,
+      );
       const next = { ...current, destination };
       dragStateRef.current = next;
       setDragState(next);

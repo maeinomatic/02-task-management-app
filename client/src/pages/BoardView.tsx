@@ -2,12 +2,12 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../store/store';
 import { setCurrentBoard } from '../store/slices/boardsSlice';
-import { fetchLists } from '../store/slices/listsSlice';
+import { fetchLists, reorderLists, reorderListsLocal } from '../store/slices/listsSlice';
 import { fetchCards, moveCard, updateCard } from '../store/slices/cardsSlice';
 import { CardModel } from '../types';
 import ListColumn from '../components/ListColumn';
 import AddListForm from '../components/AddListForm';
-import { DragDropContext, DropResult } from '../dnd';
+import { DragDropContext, DropResult, Droppable, Draggable } from '../dnd';
 
 const BoardView: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -54,8 +54,31 @@ const BoardView: React.FC = () => {
     if (!destination) return;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
 
+    // Column reorder (columns are draggable inside droppableId = 'board-columns')
+    if (source.droppableId === 'board-columns' && destination.droppableId === 'board-columns') {
+      // optimistic update locally
+      const next = lists.slice();
+      const [moved] = next.splice(source.index, 1);
+      next.splice(destination.index, 0, moved);
+      const orderedIds = next.map(l => l.id);
+      dispatch(reorderListsLocal(orderedIds));
+
+      try {
+        await dispatch(reorderLists({ boardId: String(currentBoard!.id), orderedIds })).unwrap();
+      } catch (error) {
+        console.error('Failed to persist column order:', error);
+        window.alert('Unable to save column order. The board will be reloaded to restore previous state.');
+        dispatch(fetchLists(String(currentBoard!.id)));
+      }
+
+      return;
+    }
+
+    // Card move (existing behavior)
+    const draggedCardId = draggableId.startsWith('card-') ? draggableId.slice(5) : draggableId;
+
     dispatch(moveCard({
-      cardId: draggableId,
+      cardId: draggedCardId,
       destinationListId: destination.droppableId,
       newPosition: destination.index,
     }));
@@ -68,13 +91,13 @@ const BoardView: React.FC = () => {
       ? sourceCards.slice()
       : (cardsByList[destListId] ?? []).map(c => String(c.id));
 
-    const sourceWithout = sourceCards.filter(id => id !== String(draggableId));
+    const sourceWithout = sourceCards.filter(id => id !== draggedCardId);
     const destinationBase = sourceListId === destListId
       ? sourceWithout.slice()
-      : destCards.filter(id => id !== String(draggableId));
+      : destCards.filter(id => id !== draggedCardId);
 
     const insertIndex = Math.max(0, Math.min(destination.index, destinationBase.length));
-    destinationBase.splice(insertIndex, 0, String(draggableId));
+    destinationBase.splice(insertIndex, 0, draggedCardId);
 
     const updates: Array<{ id: string; listId: string; position: number }> = [];
 
@@ -136,17 +159,34 @@ const BoardView: React.FC = () => {
             <AddListForm boardId={currentBoard.id} />
           </div>
 
-          {lists.length === 0 ? (
-            <div className="text-gray-500">No columns yet</div>
-          ) : (
-            lists.map(list => (
-              <ListColumn
-                key={list.id}
-                list={list}
-                cards={cardsByList[String(list.id)] ?? []}
-              />
-            ))
-          )}
+          <div style={{ display: 'flex', gap: 16 }}>
+            {lists.length === 0 ? (
+              <div className="text-gray-500">No columns yet</div>
+            ) : (
+              <>
+                <Droppable droppableId="board-columns">
+                  {(provided) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-4">
+                      {lists.map((list, idx) => (
+                        <Draggable key={list.id} draggableId={`column-${list.id}`} index={idx} droppableId="board-columns">
+                          {(dragProvided) => (
+                            <div ref={dragProvided.innerRef} {...dragProvided.draggableProps}>
+                              <ListColumn
+                                list={list}
+                                cards={cardsByList[String(list.id)] ?? []}
+                                dragHandleProps={dragProvided.dragHandleProps}
+                              />
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </>
+            )}
+          </div>
         </section>
       </div>
     </DragDropContext>

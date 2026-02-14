@@ -10,9 +10,10 @@ import { Droppable, Draggable } from '../dnd';
 interface Props {
   list: List;
   cards: CardModel[];
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>;
 }
 
-const ListColumn: React.FC<Props> = ({ list, cards }) => {
+const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title);
@@ -58,9 +59,11 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
     if (e.key === 'Escape') cancelComposer();
   };
 
+  const activeDragHandleProps = !editing ? dragHandleProps : undefined;
+
   return (
     <div className="min-w-[260px] bg-gray-100 p-3 rounded">
-      <div className="flex items-center justify-between mb-2">
+      <div {...(activeDragHandleProps || {})} className={`flex items-center justify-between mb-2 ${activeDragHandleProps ? 'cursor-grab' : ''}`}>
         {editing ? (
           <div className="flex gap-2 items-center">
             <input value={title} onChange={e => setTitle(e.target.value)} className="border px-2 py-1 rounded" />
@@ -118,7 +121,7 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
             {cards.map((card, index) => (
               <Draggable
                 key={card.id}
-                draggableId={String(card.id)}
+                draggableId={`card-${String(card.id)}`}
                 index={index}
                 droppableId={String(list.id)}
               >

@@ -54,6 +54,21 @@ export const createList = createAsyncThunk(
   }
 );
 
+// Persist an ordered list of columns for a board (bulk update)
+export const reorderLists = createAsyncThunk(
+  'lists/reorderLists',
+  async (payload: { boardId: string; orderedIds: string[] }, { rejectWithValue }) => {
+    try {
+      const columns = payload.orderedIds.map((id, idx) => ({ id: Number(id), position: idx }));
+      const response = await api.patch('/api/lists/bulk-order', { boardId: Number(payload.boardId), columns });
+      const lists = response.data.data;
+      return lists.map((l: any) => ({ ...l, id: String(l.id), boardId: String(l.boardId) }));
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || 'Failed to reorder lists');
+    }
+  }
+);
+
 export const updateList = createAsyncThunk(
   'lists/updateList',
   async ({ id, updates }: { id: string; updates: UpdateListRequest }, { rejectWithValue }) => {
@@ -89,6 +104,11 @@ const listsSlice = createSlice({
   initialState,
   reducers: {
     clearError: (state) => { state.error = null; },
+    // local optimistic reorder (accepts array of list ids in desired order)
+    reorderListsLocal: (state, action: PayloadAction<string[]>) => {
+      const ordered = action.payload.map(id => state.lists.find(l => l.id === id)).filter(Boolean) as List[];
+      state.lists = ordered;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -102,9 +122,12 @@ const listsSlice = createSlice({
       })
       .addCase(deleteList.fulfilled, (state, action: PayloadAction<string>) => {
         state.lists = state.lists.filter(l => l.id !== action.payload);
+      })
+      .addCase(reorderLists.fulfilled, (state, action: PayloadAction<List[]>) => {
+        state.lists = action.payload;
       });
   }
 });
 
-export const { clearError } = listsSlice.actions;
+export const { clearError, reorderListsLocal } = listsSlice.actions;
 export default listsSlice.reducer;

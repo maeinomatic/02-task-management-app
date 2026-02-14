@@ -129,6 +129,17 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
     // Perform related deletes in a single transaction to avoid partial updates
     let mut tx = pool.begin().await?;
 
+    let existing: Option<(i32, i32)> = sqlx::query_as(
+        "SELECT board_id, position FROM board_column WHERE id = $1"
+    )
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let Some((board_id, deleted_position)) = existing else {
+        return Err(AppError::NotFound("Column not found".to_string()));
+    };
+
     // Check if column exists first
     let column_exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM board_column WHERE id = $1)"
@@ -157,6 +168,16 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
         // Nothing deleted; roll back the transaction by not committing
         return Err(AppError::NotFound("Column not found".to_string()));
     }
+
+    sqlx::query(
+        "UPDATE board_column
+         SET position = position - 1, updated_at = NOW()
+         WHERE board_id = $1 AND position > $2"
+    )
+    .bind(board_id)
+    .bind(deleted_position)
+    .execute(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 
