@@ -130,14 +130,14 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
     let mut tx = pool.begin().await?;
 
     // Check if column exists first
-    let existing: Option<(i32, i32)> = sqlx::query_as(
-        "SELECT board_id, position FROM board_column WHERE id = $1"
+    let existing: Option<i32> = sqlx::query_scalar(
+        "SELECT board_id FROM board_column WHERE id = $1"
     )
     .bind(id)
     .fetch_optional(&mut *tx)
     .await?;
 
-    let Some((board_id, deleted_position)) = existing else {
+    let Some(board_id) = existing else {
         return Err(AppError::NotFound("Column not found".to_string()));
     };
 
