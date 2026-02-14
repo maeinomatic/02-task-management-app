@@ -108,8 +108,12 @@ const listsSlice = createSlice({
     clearError: (state) => { state.error = null; },
     // local optimistic reorder (accepts array of list ids in desired order)
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
-      // Snapshot current state before optimistic update
-      state.previousLists = [...state.lists];
+      // Snapshot current state before optimistic update.
+      // Only capture the snapshot if one is not already stored, so that
+      // overlapping optimistic reorders do not overwrite the original state.
+      if (state.previousLists === null) {
+        state.previousLists = [...state.lists];
+      }
 
       const idOrder = new Set(action.payload);
       const listsById = new Map(state.lists.map(l => [l.id, l]));
