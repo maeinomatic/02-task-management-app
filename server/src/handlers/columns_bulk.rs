@@ -107,7 +107,7 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     }
     query = query.bind(req.board_id);
     let result = query.execute(&mut *tx).await?;
-    
+
     // Verify that all requested columns were updated
     let expected_rows = req.columns.len() as u64;
     if result.rows_affected() != expected_rows {

@@ -110,7 +110,7 @@ const listsSlice = createSlice({
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
       // Snapshot current state before optimistic update
       state.previousLists = [...state.lists];
-      
+
       const idOrder = new Set(action.payload);
       const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
