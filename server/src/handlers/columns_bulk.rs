@@ -112,8 +112,14 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     let expected_rows = req.columns.len() as u64;
     if result.rows_affected() != expected_rows {
         // At least one requested column was not updated (likely deleted concurrently).
-        // Treat this as an error so we don't return a partially-updated set.
-        return Err(sqlx::Error::RowNotFound.into());
+        // Treat this as an error so we don't return a partially-updated set and
+        // avoid mapping it to a generic 404/RowNotFound.
+        return Err(AppError::ValidationError(format!(
+            "Bulk column order update failed: expected {} rows to be updated, but {} rows were affected. \
+             Some columns may have been modified or deleted concurrently.",
+            expected_rows,
+            result.rows_affected()
+        )));
     }
 
     // Return updated columns within the transaction to avoid race conditions
