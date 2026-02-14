@@ -158,13 +158,22 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
         return Err(AppError::NotFound("Column not found".to_string()));
     }
 
+    // Renumber all remaining columns to ensure sequential positions starting from 0.
+    // This handles any gaps or duplicate positions that may exist due to bugs or concurrent modifications.
     sqlx::query(
-        "UPDATE board_column
-         SET position = position - 1, updated_at = NOW()
-         WHERE board_id = $1 AND position > $2"
+        "WITH ordered AS (
+             SELECT id,
+                    ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) - 1 AS new_position
+             FROM board_column
+             WHERE board_id = $1
+         )
+         UPDATE board_column AS bc
+         SET position = o.new_position,
+             updated_at = NOW()
+         FROM ordered AS o
+         WHERE bc.id = o.id"
     )
     .bind(board_id)
-    .bind(deleted_position)
     .execute(&mut *tx)
     .await?;
 

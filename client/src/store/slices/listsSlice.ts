@@ -6,12 +6,14 @@ interface ListsState {
   lists: List[];
   loading: boolean;
   error: string | null;
+  previousLists: List[] | null; // Snapshot for reverting optimistic updates
 }
 
 const initialState: ListsState = {
   lists: [],
   loading: false,
   error: null,
+  previousLists: null,
 };
 
 export const fetchLists = createAsyncThunk(
@@ -106,9 +108,24 @@ const listsSlice = createSlice({
     clearError: (state) => { state.error = null; },
     // local optimistic reorder (accepts array of list ids in desired order)
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
+      // Snapshot current state before optimistic update
+      state.previousLists = [...state.lists];
+
       const idOrder = new Set(action.payload);
       const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
+
+      // Validate: check for unknown IDs in payload
+      const unknownIds = action.payload.filter(id => !listsById.has(id));
+      if (unknownIds.length > 0) {
+        console.warn(`reorderListsLocal: Payload contains unknown list IDs: ${unknownIds.join(', ')}`);
+      }
+
+      // Validate: check for lists in state not mentioned in payload
+      const unmentionedIds = state.lists.filter(list => !idOrder.has(list.id)).map(l => l.id);
+      if (unmentionedIds.length > 0) {
+        console.warn(`reorderListsLocal: State contains list IDs not in payload: ${unmentionedIds.join(', ')}`);
+      }
 
       // First, add lists in the order specified by the payload, ignoring unknown IDs
       action.payload.forEach((id) => {
@@ -143,9 +160,15 @@ const listsSlice = createSlice({
       })
       .addCase(reorderLists.fulfilled, (state, action: PayloadAction<List[]>) => {
         state.lists = action.payload;
+        state.previousLists = null; // Clear snapshot on successful update
       })
       .addCase(reorderLists.rejected, (state, action) => {
         state.error = action.payload as string;
+        // Revert to previous state if optimistic update failed
+        if (state.previousLists !== null) {
+          state.lists = state.previousLists;
+          state.previousLists = null;
+        }
       });
   }
 });

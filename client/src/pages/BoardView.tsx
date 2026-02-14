@@ -75,6 +75,10 @@ const BoardView: React.FC = () => {
     }
 
     // Card move (existing behavior)
+    // Note: Column drags (draggableIds starting with 'column-') are fully handled in the
+    // 'board-columns' branch above and return early. At this point we only expect card
+    // draggableIds, which are prefixed with 'card-' in ListColumn. We strip that prefix
+    // here to get the underlying card ID.
     const draggedCardId = draggableId.startsWith('card-') ? draggableId.slice(5) : draggableId;
 
     dispatch(moveCard({
