@@ -92,6 +92,7 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     }
 
     // At this point positions is non-empty because req.columns is non-empty
+    // (validated at line 50-52)
     let expected_max = req.columns.len() as i32 - 1;
     if positions[0] != 0 || *positions.last().unwrap() != expected_max {
         return Err(AppError::ValidationError(

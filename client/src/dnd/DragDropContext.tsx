@@ -39,6 +39,25 @@ const getDistanceToRect = (x: number, y: number, rect: DOMRect) => {
   return Math.hypot(dx, dy);
 };
 
+const detectAxisFromSiblings = (siblings: RegisteredDraggable[]): boolean => {
+  const centers = siblings.map(item => {
+    const rect = item.element.getBoundingClientRect();
+    return {
+      centerX: rect.left + rect.width / 2,
+      centerY: rect.top + rect.height / 2,
+    };
+  });
+
+  const minX = Math.min(...centers.map(c => c.centerX));
+  const maxX = Math.max(...centers.map(c => c.centerX));
+  const minY = Math.min(...centers.map(c => c.centerY));
+  const maxY = Math.max(...centers.map(c => c.centerY));
+
+  const horizontalSpread = maxX - minX;
+  const verticalSpread = maxY - minY;
+  return horizontalSpread > verticalSpread;
+};
+
 export const DragDropContext: React.FC<{
   onDragEnd: (result: DropResult) => void;
   children: React.ReactNode;
@@ -87,24 +106,9 @@ export const DragDropContext: React.FC<{
 
     // For board-columns droppable, always use horizontal axis.
     // Otherwise, infer from sibling center spread.
-    const useHorizontalAxis = chosen.id === 'board-columns' ? true : (() => {
-      const centers = siblings.map(item => {
-        const rect = item.element.getBoundingClientRect();
-        return {
-          centerX: rect.left + rect.width / 2,
-          centerY: rect.top + rect.height / 2,
-        };
-      });
-
-      const minX = Math.min(...centers.map(c => c.centerX));
-      const maxX = Math.max(...centers.map(c => c.centerX));
-      const minY = Math.min(...centers.map(c => c.centerY));
-      const maxY = Math.max(...centers.map(c => c.centerY));
-
-      const horizontalSpread = maxX - minX;
-      const verticalSpread = maxY - minY;
-      return horizontalSpread > verticalSpread;
-    })();
+    const useHorizontalAxis = chosen.id === 'board-columns' 
+      ? true 
+      : detectAxisFromSiblings(siblings);
 
     const index = siblings.findIndex(item => {
       const rect = item.element.getBoundingClientRect();
