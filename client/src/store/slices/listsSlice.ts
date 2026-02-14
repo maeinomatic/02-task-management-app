@@ -6,12 +6,14 @@ interface ListsState {
   lists: List[];
   loading: boolean;
   error: string | null;
+  previousLists: List[] | null; // Snapshot for reverting optimistic updates
 }
 
 const initialState: ListsState = {
   lists: [],
   loading: false,
   error: null,
+  previousLists: null,
 };
 
 export const fetchLists = createAsyncThunk(
@@ -106,6 +108,9 @@ const listsSlice = createSlice({
     clearError: (state) => { state.error = null; },
     // local optimistic reorder (accepts array of list ids in desired order)
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
+      // Snapshot current state before optimistic update
+      state.previousLists = [...state.lists];
+      
       const idOrder = new Set(action.payload);
       const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
@@ -143,9 +148,15 @@ const listsSlice = createSlice({
       })
       .addCase(reorderLists.fulfilled, (state, action: PayloadAction<List[]>) => {
         state.lists = action.payload;
+        state.previousLists = null; // Clear snapshot on successful update
       })
       .addCase(reorderLists.rejected, (state, action) => {
         state.error = action.payload as string;
+        // Revert to previous state if optimistic update failed
+        if (state.previousLists !== null) {
+          state.lists = state.previousLists;
+          state.previousLists = null;
+        }
       });
   }
 });
