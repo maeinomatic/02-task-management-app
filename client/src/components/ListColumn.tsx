@@ -88,11 +88,21 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <div {...(activeDragHandleProps || {})} className={`flex items-center ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`} aria-label="Drag to reorder column">
+              <div 
+                {...(activeDragHandleProps || {})} 
+                className={`flex items-center ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`} 
+                aria-label="Drag to reorder column"
+                tabIndex={0}
+                role="button"
+                aria-describedby={`drag-hint-${list.id}`}
+              >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                 </svg>
               </div>
+              <span id={`drag-hint-${list.id}`} className="sr-only">
+                Use pointer to drag and reorder this column. Keyboard reordering not yet supported.
+              </span>
               <h3 className="font-semibold">{list.title}</h3>
             </div>
             <div className="flex items-center gap-2">
