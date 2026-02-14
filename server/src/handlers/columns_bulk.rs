@@ -58,6 +58,8 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
         ));
     }
 
+    // Check count first as an early rejection for obviously wrong payloads.
+    // This provides a fast fail path before we allocate and sort vectors for ID comparison.
     if existing_ids.len() != req.columns.len() {
         return Err(AppError::ValidationError(
             "Columns payload must include all columns for the board".to_string(),
