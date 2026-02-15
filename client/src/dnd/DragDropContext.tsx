@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DropResult, DraggableLocation } from './types';
 
+// Constants for droppable IDs to avoid typos and improve maintainability
+const BOARD_COLUMNS_DROPPABLE_ID = 'board-columns';
+
 type RegisteredDroppable = {
   id: string;
   element: HTMLElement;
@@ -92,9 +95,9 @@ export const DragDropContext: React.FC<{
     // This hardcoded string comparison maintains type safety but is not flexible.
     // If additional droppable types are added, this logic will need updates.
     // Consider using explicit metadata on droppables to indicate accepted draggable types.
-    const droppables = sourceDroppableId === 'board-columns'
-      ? allDroppables.filter(d => d.id === 'board-columns')
-      : allDroppables.filter(d => d.id !== 'board-columns');
+    const droppables = sourceDroppableId === BOARD_COLUMNS_DROPPABLE_ID
+      ? allDroppables.filter(d => d.id === BOARD_COLUMNS_DROPPABLE_ID)
+      : allDroppables.filter(d => d.id !== BOARD_COLUMNS_DROPPABLE_ID);
 
     if (droppables.length === 0) return null;
 
@@ -135,7 +138,7 @@ export const DragDropContext: React.FC<{
     // configurable orientation, this special-casing must be updated (e.g. by
     // deriving the axis from droppable metadata instead of hardcoding it).
     // Otherwise, infer from sibling center spread.
-    const useHorizontalAxis = chosen.id === 'board-columns' 
+    const useHorizontalAxis = chosen.id === BOARD_COLUMNS_DROPPABLE_ID 
       ? true 
       : detectAxisFromSiblings(siblingsWithRects, false);
 
