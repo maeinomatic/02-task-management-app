@@ -65,8 +65,14 @@ export const reorderLists = createAsyncThunk(
     try {
       const columns = payload.orderedIds.map((id, idx) => ({ id: Number(id), position: idx }));
       const numericBoardId = Number(payload.boardId);
+      
+      // Validate that boardId is numeric to prevent NaN serialization
+      if (Number.isNaN(numericBoardId)) {
+        return rejectWithValue('Invalid boardId: must be a numeric value');
+      }
+      
       const response = await api.patch('/api/lists/bulk-order', {
-        boardId: Number.isNaN(numericBoardId) ? payload.boardId : numericBoardId,
+        boardId: numericBoardId,
         columns,
       });
       const lists = response.data.data;

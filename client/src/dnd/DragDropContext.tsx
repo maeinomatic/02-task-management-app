@@ -46,8 +46,13 @@ type SiblingWithRect = {
   centerY: number;
 };
 
-const detectAxisFromSiblings = (siblingsWithRects: SiblingWithRect[]): boolean => {
-  if (siblingsWithRects.length === 0) return false;
+// Returns true for horizontal axis, false for vertical axis.
+// When there are no siblings, defaultIsHorizontal determines the axis.
+const detectAxisFromSiblings = (
+  siblingsWithRects: SiblingWithRect[],
+  defaultIsHorizontal: boolean = false,
+): boolean => {
+  if (siblingsWithRects.length === 0) return defaultIsHorizontal;
 
   const minX = Math.min(...siblingsWithRects.map(s => s.centerX));
   const maxX = Math.max(...siblingsWithRects.map(s => s.centerX));
@@ -80,6 +85,13 @@ export const DragDropContext: React.FC<{
     sourceDroppableId: string,
   ): DraggableLocation | null => {
     const allDroppables = Array.from(droppablesRef.current.values());
+    
+    // Filter droppables based on drag source type:
+    // - board-columns draggables can only drop in the board-columns droppable
+    // - card draggables can only drop in list droppables (not board-columns)
+    // This hardcoded string comparison maintains type safety but is not flexible.
+    // If additional droppable types are added, this logic will need updates.
+    // Consider using explicit metadata on droppables to indicate accepted draggable types.
     const droppables = sourceDroppableId === 'board-columns'
       ? allDroppables.filter(d => d.id === 'board-columns')
       : allDroppables.filter(d => d.id !== 'board-columns');
@@ -117,10 +129,15 @@ export const DragDropContext: React.FC<{
     });
 
     // For board-columns droppable, always use horizontal axis.
+    // Board columns are currently laid out horizontally, and this DnD logic
+    // relies on that invariant by always using the horizontal axis here.
+    // If board-columns are ever allowed to be arranged vertically or have a
+    // configurable orientation, this special-casing must be updated (e.g. by
+    // deriving the axis from droppable metadata instead of hardcoding it).
     // Otherwise, infer from sibling center spread.
     const useHorizontalAxis = chosen.id === 'board-columns' 
       ? true 
-      : detectAxisFromSiblings(siblingsWithRects);
+      : detectAxisFromSiblings(siblingsWithRects, false);
 
     const index = siblingsWithRects.findIndex(s => {
       if (useHorizontalAxis) {

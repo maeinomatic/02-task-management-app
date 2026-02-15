@@ -14,6 +14,7 @@ const BoardView: React.FC = () => {
   const currentBoard = useSelector((s: RootState) => s.boards.currentBoard);
   const lists = useSelector((s: RootState) => s.lists.lists);
   const cardsAll = useSelector((s: RootState) => s.cards.cards);
+  const pendingReorderRequestId = useSelector((s: RootState) => s.lists.pendingReorderRequestId);
   const fetchedListIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -56,6 +57,11 @@ const BoardView: React.FC = () => {
 
     // Column reorder (columns are draggable inside droppableId = 'board-columns')
     if (source.droppableId === 'board-columns' && destination.droppableId === 'board-columns') {
+      // Prevent concurrent reorders to avoid overlapping optimistic update issues
+      if (pendingReorderRequestId !== null) {
+        return;
+      }
+
       // optimistic update locally
       const next = lists.slice();
       const [moved] = next.splice(source.index, 1);
