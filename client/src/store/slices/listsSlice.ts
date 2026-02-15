@@ -6,7 +6,7 @@ interface ListsState {
   lists: List[];
   loading: boolean;
   error: string | null;
-  previousLists: List[] | null; // Snapshot for reverting optimistic updates
+  previousListOrder: string[] | null; // Snapshot of list IDs in order for reverting optimistic reorder
   pendingReorderRequestId: string | null; // Track the active reorder request
 }
 
@@ -14,7 +14,7 @@ const initialState: ListsState = {
   lists: [],
   loading: false,
   error: null,
-  previousLists: null,
+  previousListOrder: null,
   pendingReorderRequestId: null,
 };
 
@@ -120,28 +120,16 @@ const listsSlice = createSlice({
     clearError: (state) => { state.error = null; },
     // local optimistic reorder (accepts array of list ids in desired order)
     reorderListsLocal: (state, action: PayloadAction<string[]>) => {
-      // Snapshot current state before optimistic update.
+      // Snapshot current order before optimistic update.
       // Only capture the snapshot if one is not already stored, so that
       // overlapping optimistic reorders do not overwrite the original state.
-      if (state.previousLists === null) {
-        state.previousLists = [...state.lists];
+      if (state.previousListOrder === null) {
+        state.previousListOrder = state.lists.map(l => l.id);
       }
 
       const idOrder = new Set(action.payload);
       const listsById = new Map(state.lists.map(l => [l.id, l]));
       const ordered: List[] = [];
-
-      // Validate: check for unknown IDs in payload
-      const unknownIds = action.payload.filter(id => !listsById.has(id));
-      if (unknownIds.length > 0) {
-        console.warn(`reorderListsLocal: Payload contains unknown list IDs: ${unknownIds.join(', ')}`);
-      }
-
-      // Validate: check for lists in state not mentioned in payload
-      const unmentionedIds = state.lists.filter(list => !idOrder.has(list.id)).map(l => l.id);
-      if (unmentionedIds.length > 0) {
-        console.warn(`reorderListsLocal: State contains list IDs not in payload: ${unmentionedIds.join(', ')}`);
-      }
 
       // First, add lists in the order specified by the payload, ignoring unknown IDs
       action.payload.forEach((id) => {
@@ -182,7 +170,7 @@ const listsSlice = createSlice({
         // Only clear snapshot if this is the latest reorder request
         if (state.pendingReorderRequestId === action.meta.requestId) {
           state.lists = action.payload;
-          state.previousLists = null;
+          state.previousListOrder = null;
           state.pendingReorderRequestId = null;
         }
       })
@@ -190,9 +178,16 @@ const listsSlice = createSlice({
         // Only revert if this is the latest reorder request
         if (state.pendingReorderRequestId === action.meta.requestId) {
           state.error = action.payload as string;
-          if (state.previousLists !== null) {
-            state.lists = state.previousLists;
-            state.previousLists = null;
+          // Revert to the original order if we have a snapshot
+          if (state.previousListOrder !== null) {
+            const listsById = new Map(state.lists.map(l => [l.id, l]));
+            const reordered: List[] = [];
+            state.previousListOrder.forEach(id => {
+              const list = listsById.get(id);
+              if (list) reordered.push(list);
+            });
+            state.lists = reordered;
+            state.previousListOrder = null;
           }
           state.pendingReorderRequestId = null;
         }

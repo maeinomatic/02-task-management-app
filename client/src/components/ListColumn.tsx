@@ -88,16 +88,27 @@ const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
         ) : (
           <>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                {...(activeDragHandleProps || {})}
-                className={`flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${activeDragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                aria-label={activeDragHandleProps ? 'Drag to reorder column' : undefined}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
-                </svg>
-              </button>
+              {activeDragHandleProps ? (
+                <button
+                  type="button"
+                  {...activeDragHandleProps}
+                  className="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded cursor-grab active:cursor-grabbing"
+                  aria-label="Drag to reorder column"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                  </svg>
+                </button>
+              ) : (
+                <span
+                  className="flex items-center rounded"
+                  aria-hidden="true"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                  </svg>
+                </span>
+              )}
               <h3 className="font-semibold">{list.title}</h3>
             </div>
             <div className="flex items-center gap-2">
