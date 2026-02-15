@@ -101,6 +101,11 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
     }
 
     // Perform bulk update in a single statement to reduce round-trips and lock time
+    // Note: This dynamic SQL construction is safe because:
+    // - The number of columns (req.columns.len()) is validated to be non-empty above
+    // - All actual values are bound using sqlx::bind(), preventing SQL injection
+    // - The parameter count is calculated deterministically and matches the bound values
+    // Any mismatch between parameters and bindings would cause a runtime error from sqlx
     let mut sql = String::from(
         "UPDATE board_column AS bc \
          SET position = v.position, updated_at = NOW() \
@@ -136,12 +141,9 @@ pub async fn bulk_update_column_order(pool: &DbPool, req: BulkColumnOrderUpdate)
         // At least one requested column was not updated (likely deleted concurrently).
         // Treat this as an error so we don't return a partially-updated set and
         // avoid mapping it to a generic 404/RowNotFound.
-        return Err(AppError::ValidationError(format!(
-            "Bulk column order update failed: expected {} rows to be updated, but {} rows were affected. \
-             Some columns may have been modified or deleted concurrently.",
-            expected_rows,
-            result.rows_affected()
-        )));
+        return Err(AppError::ValidationError(
+            "Failed to update column order due to concurrent modifications. Please try again.".to_string()
+        ));
     }
 
     // Return updated columns within the transaction to avoid race conditions
