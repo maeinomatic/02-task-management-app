@@ -9,7 +9,7 @@ pub async fn get_all_columns(pool: &DbPool, board_id: Option<i32>) -> Result<Vec
             "SELECT id, title, board_id, position, created_at, updated_at 
              FROM board_column 
              WHERE board_id = $1
-             ORDER BY position ASC"
+             ORDER BY position ASC, id ASC"
         )
         .bind(board_id)
         .fetch_all(pool)
@@ -18,7 +18,7 @@ pub async fn get_all_columns(pool: &DbPool, board_id: Option<i32>) -> Result<Vec
         sqlx::query_as::<_, BoardColumn>(
             "SELECT id, title, board_id, position, created_at, updated_at 
              FROM board_column 
-             ORDER BY position ASC"
+             ORDER BY position ASC, id ASC"
         )
         .fetch_all(pool)
         .await?
@@ -130,16 +130,16 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
     let mut tx = pool.begin().await?;
 
     // Check if column exists first
-    let column_exists: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM board_column WHERE id = $1)"
+    let existing: Option<i32> = sqlx::query_scalar(
+        "SELECT board_id FROM board_column WHERE id = $1"
     )
     .bind(id)
-    .fetch_one(&mut *tx)
+    .fetch_optional(&mut *tx)
     .await?;
 
-    if !column_exists {
+    let Some(board_id) = existing else {
         return Err(AppError::NotFound("Column not found".to_string()));
-    }
+    };
 
     // Delete all cards in this column first (cascade delete)
     sqlx::query("DELETE FROM card WHERE list_id = $1")
@@ -157,6 +157,25 @@ pub async fn delete_column(pool: &DbPool, id: i32) -> Result<(), AppError> {
         // Nothing deleted; roll back the transaction by not committing
         return Err(AppError::NotFound("Column not found".to_string()));
     }
+
+    // Renumber all remaining columns to ensure sequential positions starting from 0.
+    // This handles any gaps or duplicate positions that may exist due to bugs or concurrent modifications.
+    sqlx::query(
+        "WITH ordered AS (
+             SELECT id,
+                    ROW_NUMBER() OVER (ORDER BY position ASC, id ASC) - 1 AS new_position
+             FROM board_column
+             WHERE board_id = $1
+         )
+         UPDATE board_column AS bc
+         SET position = o.new_position,
+             updated_at = NOW()
+         FROM ordered AS o
+         WHERE bc.id = o.id"
+    )
+    .bind(board_id)
+    .execute(&mut *tx)
+    .await?;
 
     tx.commit().await?;
 

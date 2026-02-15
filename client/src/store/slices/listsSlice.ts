@@ -6,12 +6,16 @@ interface ListsState {
   lists: List[];
   loading: boolean;
   error: string | null;
+  previousListOrder: string[] | null; // Snapshot of list IDs in order for reverting optimistic reorder
+  pendingReorderRequestId: string | null; // Track the active reorder request
 }
 
 const initialState: ListsState = {
   lists: [],
   loading: false,
   error: null,
+  previousListOrder: null,
+  pendingReorderRequestId: null,
 };
 
 export const fetchLists = createAsyncThunk(
@@ -54,6 +58,31 @@ export const createList = createAsyncThunk(
   }
 );
 
+// Persist an ordered list of columns for a board (bulk update)
+export const reorderLists = createAsyncThunk(
+  'lists/reorderLists',
+  async (payload: { boardId: string; orderedIds: string[] }, { rejectWithValue }) => {
+    try {
+      const columns = payload.orderedIds.map((id, idx) => ({ id: Number(id), position: idx }));
+      const numericBoardId = Number(payload.boardId);
+      
+      // Validate that boardId is numeric to prevent NaN serialization
+      if (Number.isNaN(numericBoardId)) {
+        return rejectWithValue('Invalid boardId: must be a numeric value');
+      }
+      
+      const response = await api.patch('/api/lists/bulk-order', {
+        boardId: numericBoardId,
+        columns,
+      });
+      const lists = response.data.data;
+      return lists.map((l: any) => ({ ...l, id: String(l.id), boardId: String(l.boardId) }));
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.error || 'Failed to reorder lists');
+    }
+  }
+);
+
 export const updateList = createAsyncThunk(
   'lists/updateList',
   async ({ id, updates }: { id: string; updates: UpdateListRequest }, { rejectWithValue }) => {
@@ -89,6 +118,36 @@ const listsSlice = createSlice({
   initialState,
   reducers: {
     clearError: (state) => { state.error = null; },
+    // local optimistic reorder (accepts array of list ids in desired order)
+    reorderListsLocal: (state, action: PayloadAction<string[]>) => {
+      // Snapshot current order before optimistic update.
+      // Only capture the snapshot if one is not already stored, so that
+      // overlapping optimistic reorders do not overwrite the original state.
+      if (state.previousListOrder === null) {
+        state.previousListOrder = state.lists.map(l => l.id);
+      }
+
+      const idOrder = new Set(action.payload);
+      const listsById = new Map(state.lists.map(l => [l.id, l]));
+      const ordered: List[] = [];
+
+      // First, add lists in the order specified by the payload, ignoring unknown IDs
+      action.payload.forEach((id) => {
+        const existing = listsById.get(id);
+        if (existing) {
+          ordered.push(existing);
+        }
+      });
+
+      // Then, append any lists that weren't mentioned in the payload, preserving their original order
+      state.lists.forEach((list) => {
+        if (!idOrder.has(list.id)) {
+          ordered.push(list);
+        }
+      });
+
+      state.lists = ordered;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -102,9 +161,39 @@ const listsSlice = createSlice({
       })
       .addCase(deleteList.fulfilled, (state, action: PayloadAction<string>) => {
         state.lists = state.lists.filter(l => l.id !== action.payload);
+      })
+      .addCase(reorderLists.pending, (state, action) => {
+        // Store the requestId when a reorder starts
+        state.pendingReorderRequestId = action.meta.requestId;
+      })
+      .addCase(reorderLists.fulfilled, (state, action) => {
+        // Only clear snapshot if this is the latest reorder request
+        if (state.pendingReorderRequestId === action.meta.requestId) {
+          state.lists = action.payload;
+          state.previousListOrder = null;
+          state.pendingReorderRequestId = null;
+        }
+      })
+      .addCase(reorderLists.rejected, (state, action) => {
+        // Only revert if this is the latest reorder request
+        if (state.pendingReorderRequestId === action.meta.requestId) {
+          state.error = action.payload as string;
+          // Revert to the original order if we have a snapshot
+          if (state.previousListOrder !== null) {
+            const listsById = new Map(state.lists.map(l => [l.id, l]));
+            const reordered: List[] = [];
+            state.previousListOrder.forEach(id => {
+              const list = listsById.get(id);
+              if (list) reordered.push(list);
+            });
+            state.lists = reordered;
+            state.previousListOrder = null;
+          }
+          state.pendingReorderRequestId = null;
+        }
       });
   }
 });
 
-export const { clearError } = listsSlice.actions;
+export const { clearError, reorderListsLocal } = listsSlice.actions;
 export default listsSlice.reducer;

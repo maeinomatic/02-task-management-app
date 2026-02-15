@@ -9,11 +9,14 @@ use serde::Deserialize;
 use crate::db::DbPool;
 use crate::errors::AppError;
 use crate::handlers;
+use crate::handlers::columns_bulk;
+use crate::handlers::columns_bulk::BulkColumnOrderUpdate;
 use crate::models::{ApiResponse, BoardColumn, CreateColumnRequest, UpdateColumnRequest};
 
 pub fn router() -> Router<DbPool> {
     Router::new()
         .route("/", get(get_lists).post(create_list))
+        .route("/bulk-order", axum::routing::patch(bulk_update_column_order))
         .route("/:id", get(get_list).put(update_list).delete(delete_list))
 }
 
@@ -83,6 +86,25 @@ pub async fn create_list(
         StatusCode::CREATED,
         Json(ApiResponse::success_with_message(col, "List created successfully".to_string())),
     ))
+}
+
+/// Bulk update column order for a board
+#[utoipa::path(
+    patch,
+    path = "/api/lists/bulk-order",
+    tag = "Lists",
+    request_body = BulkColumnOrderUpdate,
+    responses(
+        (status = 200, description = "Column order updated", body = ApiResponse<Vec<BoardColumn>>),
+        (status = 400, description = "Invalid input")
+    )
+)]
+pub async fn bulk_update_column_order(
+    State(pool): State<DbPool>,
+    Json(req): Json<BulkColumnOrderUpdate>,
+) -> Result<Json<ApiResponse<Vec<BoardColumn>>>, AppError> {
+    let updated = columns_bulk::bulk_update_column_order(&pool, req).await?;
+    Ok(Json(ApiResponse::success_with_message(updated, "Column order updated".to_string())))
 }
 
 /// Update a list

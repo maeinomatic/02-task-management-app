@@ -10,9 +10,10 @@ import { Droppable, Draggable } from '../dnd';
 interface Props {
   list: List;
   cards: CardModel[];
+  dragHandleProps?: React.HTMLAttributes<HTMLElement>;
 }
 
-const ListColumn: React.FC<Props> = ({ list, cards }) => {
+const ListColumn: React.FC<Props> = ({ list, cards, dragHandleProps }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(list.title);
@@ -58,6 +59,8 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
     if (e.key === 'Escape') cancelComposer();
   };
 
+  const activeDragHandleProps = !editing ? dragHandleProps : undefined;
+
   return (
     <div className="min-w-[260px] bg-gray-100 p-3 rounded">
       <div className="flex items-center justify-between mb-2">
@@ -84,7 +87,30 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
           </div>
         ) : (
           <>
-            <h3 className="font-semibold">{list.title}</h3>
+            <div className="flex items-center gap-2">
+              {activeDragHandleProps ? (
+                <button
+                  type="button"
+                  {...activeDragHandleProps}
+                  className="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded cursor-grab active:cursor-grabbing"
+                  aria-label="Drag to reorder column"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                  </svg>
+                </button>
+              ) : (
+                <span
+                  className="flex items-center rounded"
+                  aria-hidden="true"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                  </svg>
+                </span>
+              )}
+              <h3 className="font-semibold">{list.title}</h3>
+            </div>
             <div className="flex items-center gap-2">
               <div className="text-sm text-gray-600">{cards.length}</div>
               <button className="text-sm text-blue-600" onClick={() => setEditing(true)}>Edit</button>
@@ -116,9 +142,11 @@ const ListColumn: React.FC<Props> = ({ list, cards }) => {
             className="space-y-2"
           >
             {cards.map((card, index) => (
+              // Cards use 'card-' prefix in draggableId to distinguish them from columns.
+              // This prefix is stripped in BoardView's onDragEnd handler to get the actual card ID.
               <Draggable
                 key={card.id}
-                draggableId={String(card.id)}
+                draggableId={`card-${String(card.id)}`}
                 index={index}
                 droppableId={String(list.id)}
               >

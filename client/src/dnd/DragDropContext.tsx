@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { DropResult, DraggableLocation } from './types';
 
+// Constants for droppable IDs to avoid typos and improve maintainability
+const BOARD_COLUMNS_DROPPABLE_ID = 'board-columns';
+
 type RegisteredDroppable = {
   id: string;
   element: HTMLElement;
@@ -17,6 +20,8 @@ type DragState = {
   draggableId: string;
   source: DraggableLocation;
   destination: DraggableLocation | null;
+  pointerOffset: { x: number; y: number };
+  draggableSize: { width: number; height: number };
 } | null;
 
 type DndContextValue = {
@@ -37,6 +42,30 @@ const getDistanceToRect = (x: number, y: number, rect: DOMRect) => {
   return Math.hypot(dx, dy);
 };
 
+type SiblingWithRect = {
+  item: RegisteredDraggable;
+  centerX: number;
+  centerY: number;
+};
+
+// Returns true for horizontal axis, false for vertical axis.
+// When there are no siblings, defaultIsHorizontal determines the axis.
+const detectAxisFromSiblings = (
+  siblingsWithRects: SiblingWithRect[],
+  defaultIsHorizontal: boolean = false,
+): boolean => {
+  if (siblingsWithRects.length === 0) return defaultIsHorizontal;
+
+  const minX = Math.min(...siblingsWithRects.map(s => s.centerX));
+  const maxX = Math.max(...siblingsWithRects.map(s => s.centerX));
+  const minY = Math.min(...siblingsWithRects.map(s => s.centerY));
+  const maxY = Math.max(...siblingsWithRects.map(s => s.centerY));
+
+  const horizontalSpread = maxX - minX;
+  const verticalSpread = maxY - minY;
+  return horizontalSpread > verticalSpread;
+};
+
 export const DragDropContext: React.FC<{
   onDragEnd: (result: DropResult) => void;
   children: React.ReactNode;
@@ -51,8 +80,24 @@ export const DragDropContext: React.FC<{
     dragStateRef.current = dragState;
   }, [dragState]);
 
-  const computeDestination = (x: number, y: number, draggingId: string): DraggableLocation | null => {
-    const droppables = Array.from(droppablesRef.current.values());
+  const computeDestination = (
+    x: number,
+    y: number,
+    draggingId: string,
+    sourceDroppableId: string,
+  ): DraggableLocation | null => {
+    const allDroppables = Array.from(droppablesRef.current.values());
+    
+    // Filter droppables based on drag source type:
+    // - board-columns draggables can only drop in the board-columns droppable
+    // - card draggables can only drop in list droppables (not board-columns)
+    // This hardcoded string comparison maintains type safety but is not flexible.
+    // If additional droppable types are added, this logic will need updates.
+    // Consider using explicit metadata on droppables to indicate accepted draggable types.
+    const droppables = sourceDroppableId === BOARD_COLUMNS_DROPPABLE_ID
+      ? allDroppables.filter(d => d.id === BOARD_COLUMNS_DROPPABLE_ID)
+      : allDroppables.filter(d => d.id !== BOARD_COLUMNS_DROPPABLE_ID);
+
     if (droppables.length === 0) return null;
 
     const inside = droppables.filter(d => {
@@ -74,10 +119,32 @@ export const DragDropContext: React.FC<{
       return { droppableId: chosen.id, index: 0 };
     }
 
-    const index = siblings.findIndex(item => {
+    // Compute rects and centers once for all siblings to avoid repeated layout reads
+    const siblingsWithRects: SiblingWithRect[] = siblings.map(item => {
       const rect = item.element.getBoundingClientRect();
-      const centerY = rect.top + rect.height / 2;
-      return y < centerY;
+      return {
+        item,
+        centerX: rect.left + rect.width / 2,
+        centerY: rect.top + rect.height / 2,
+      };
+    });
+
+    // For board-columns droppable, always use horizontal axis.
+    // Board columns are currently laid out horizontally, and this DnD logic
+    // relies on that invariant by always using the horizontal axis here.
+    // If board-columns are ever allowed to be arranged vertically or have a
+    // configurable orientation, this special-casing must be updated (e.g. by
+    // deriving the axis from droppable metadata instead of hardcoding it).
+    // Otherwise, infer from sibling center spread.
+    const useHorizontalAxis = chosen.id === BOARD_COLUMNS_DROPPABLE_ID 
+      ? true 
+      : detectAxisFromSiblings(siblingsWithRects, false);
+
+    const index = siblingsWithRects.findIndex(s => {
+      if (useHorizontalAxis) {
+        return x < s.centerX;
+      }
+      return y < s.centerY;
     });
 
     return {
@@ -115,16 +182,51 @@ export const DragDropContext: React.FC<{
   const startDrag = (draggableId: string, source: DraggableLocation, event: React.PointerEvent<HTMLElement>) => {
     event.preventDefault();
 
-    const initialDestination = computeDestination(event.clientX, event.clientY, draggableId);
-    setDragState({ draggableId, source, destination: initialDestination });
-    dragStateRef.current = { draggableId, source, destination: initialDestination };
+    const draggable = draggablesRef.current.get(draggableId);
+    const draggableRect = draggable?.element.getBoundingClientRect();
+
+    const pointerOffset = draggableRect
+      ? { x: event.clientX - draggableRect.left, y: event.clientY - draggableRect.top }
+      : { x: 0, y: 0 };
+
+    const draggableSize = draggableRect
+      ? { width: draggableRect.width, height: draggableRect.height }
+      : { width: 0, height: 0 };
+
+    const centerX = event.clientX - pointerOffset.x + draggableSize.width / 2;
+    const centerY = event.clientY - pointerOffset.y + draggableSize.height / 2;
+
+    const initialDestination = computeDestination(
+      centerX,
+      centerY,
+      draggableId,
+      source.droppableId,
+    );
+    const initialState = {
+      draggableId,
+      source,
+      destination: initialDestination,
+      pointerOffset,
+      draggableSize,
+    };
+    setDragState(initialState);
+    dragStateRef.current = initialState;
 
     document.body.style.userSelect = 'none';
 
     const onMove = (ev: PointerEvent) => {
       const current = dragStateRef.current;
       if (!current) return;
-      const destination = computeDestination(ev.clientX, ev.clientY, current.draggableId);
+
+      const centerX = ev.clientX - current.pointerOffset.x + current.draggableSize.width / 2;
+      const centerY = ev.clientY - current.pointerOffset.y + current.draggableSize.height / 2;
+
+      const destination = computeDestination(
+        centerX,
+        centerY,
+        current.draggableId,
+        current.source.droppableId,
+      );
       const next = { ...current, destination };
       dragStateRef.current = next;
       setDragState(next);
