@@ -44,7 +44,6 @@ const getDistanceToRect = (x: number, y: number, rect: DOMRect) => {
 
 type SiblingWithRect = {
   item: RegisteredDraggable;
-  rect: DOMRect;
   centerX: number;
   centerY: number;
 };
@@ -125,7 +124,6 @@ export const DragDropContext: React.FC<{
       const rect = item.element.getBoundingClientRect();
       return {
         item,
-        rect,
         centerX: rect.left + rect.width / 2,
         centerY: rect.top + rect.height / 2,
       };
