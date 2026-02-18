@@ -17,7 +17,8 @@ Follow Rust standard conventions (RFC 430):
 
 | Element | Convention | Example |
 |--------|------------|---------|
-| Modules, types, traits | `PascalCase` or `UpperCamelCase` | `TaskManager`, `UserService`, `Repository` |
+| Modules | `snake_case` | `task_manager`, `user_service`, `database` |
+| Types, structs, enums, traits | `PascalCase` or `UpperCamelCase` | `TaskManager`, `UserService`, `Repository` |
 | Functions, methods, variables | `snake_case` | `get_user_async`, `user_id`, `task_data` |
 | Constants, statics | `SCREAMING_SNAKE_CASE` | `MAX_RETRY_COUNT`, `DATABASE_URL` |
 | Type parameters | Single uppercase letter or `UpperCamelCase` | `T`, `TEntity`, `Item` |
@@ -175,8 +176,8 @@ mod tests {
 ## Security
 
 - **Secrets:** Never in code or config. Use environment variables and secure vaults.
-- **Auth:** Implement proper authentication middleware. Use JWT or session tokens.
-- **APIs:** Protect endpoints with auth middleware. Validate bearer tokens.
+- **Authentication:** Implement proper authentication middleware. Use JWT or session tokens.
+- **APIs:** Protect endpoints with authentication middleware. Validate bearer tokens.
 - **Headers:** Enforce security headers (HSTS, X-Frame-Options, CSP).
 - **Encryption:** Use TLS 1.2+ for all external communication. Use HTTPS in production.
 - **Input:** Validate all user input. Sanitize data before database queries (SQLx helps prevent SQL injection).
