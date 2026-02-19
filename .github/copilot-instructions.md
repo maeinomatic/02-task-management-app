@@ -11,6 +11,27 @@ Repository-specific guidance for Copilot when working on this codebase. These in
 
 ---
 
+## MCP (Model Context Protocol) Usage
+
+- **Installed providers:** `GitHub MCP`, `Chrome DevTools MCP`.
+- **MCP-first for discovery tasks:** For tasks involving issue lookup, PR context, repository metadata, workflow status, browser/runtime debugging, or network/API inspection, prefer MCP providers before guessing.
+- **Provider routing (default):**
+    1. **GitHub MCP** for: issues, PRs, review comments, repository search, branch/commit metadata.
+    2. **Chrome DevTools MCP** for: UI behavior debugging, console errors, network requests, rendering/layout/interaction checks.
+    3. **Workspace files/tools** for: source-of-truth implementation details and local code edits.
+- **When both are relevant:** Start with GitHub MCP for task context, then Chrome DevTools MCP for runtime verification.
+- **If provider selection is ambiguous:** Ask one concise clarification question, then proceed.
+- **If MCP is unavailable for a task:** State that clearly and fall back to local workspace analysis (files, code search, git diff) without blocking progress.
+- **Report MCP usage briefly:** Include a one-line note in responses indicating which MCP provider was used and for what.
+
+### Prompt shortcuts (for user requests)
+
+- "Use **GitHub MCP** for this task" → prioritize repository/issue/PR context via GitHub MCP.
+- "Use **Chrome DevTools MCP** to verify" → prioritize runtime/browser validation via Chrome DevTools MCP.
+- "Use MCP by default" → use the provider routing rules above unless user overrides.
+
+---
+
 ## Rust Naming Conventions
 
 Follow Rust standard conventions (RFC 430):
