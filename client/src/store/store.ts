@@ -3,6 +3,7 @@ import boardsReducer from './slices/boardsSlice';
 import cardsReducer from './slices/cardsSlice';
 import uiReducer from './slices/uiSlice';
 import listsReducer from './slices/listsSlice';
+import authReducer from './slices/authSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     cards: cardsReducer,
     ui: uiReducer,
     lists: listsReducer,
+    auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

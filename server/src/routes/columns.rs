@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::get,
     Json, Router,
 };
@@ -79,8 +79,10 @@ pub async fn get_list(
 )]
 pub async fn create_list(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Json(req): Json<CreateColumnRequest>,
 ) -> Result<(StatusCode, Json<ApiResponse<BoardColumn>>), AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let col = handlers::columns::create_column(&pool, req).await?;
     Ok((
         StatusCode::CREATED,
@@ -101,8 +103,10 @@ pub async fn create_list(
 )]
 pub async fn bulk_update_column_order(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Json(req): Json<BulkColumnOrderUpdate>,
 ) -> Result<Json<ApiResponse<Vec<BoardColumn>>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let updated = columns_bulk::bulk_update_column_order(&pool, req).await?;
     Ok(Json(ApiResponse::success_with_message(updated, "Column order updated".to_string())))
 }
@@ -124,9 +128,11 @@ pub async fn bulk_update_column_order(
 )]
 pub async fn update_list(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
     Json(req): Json<UpdateColumnRequest>,
 ) -> Result<Json<ApiResponse<BoardColumn>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let col = handlers::columns::update_column(&pool, id, req).await?;
     Ok(Json(ApiResponse::success_with_message(col, "List updated successfully".to_string())))
 }
@@ -146,8 +152,10 @@ pub async fn update_list(
 )]
 pub async fn delete_list(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     handlers::columns::delete_column(&pool, id).await?;
     Ok(Json(ApiResponse::message_only("List deleted successfully".to_string())))
 }

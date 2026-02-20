@@ -42,10 +42,7 @@ export const createBoard = createAsyncThunk(
   'boards/createBoard',
   async (boardData: { title: string; description?: string }, { rejectWithValue }) => {
     try {
-      const response = await api.post('/api/boards', {
-        ...boardData,
-        ownerId: 'user1', // TODO: Get from auth
-      });
+      const response = await api.post('/api/boards', boardData);
       return response.data.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.error || 'Failed to create board');

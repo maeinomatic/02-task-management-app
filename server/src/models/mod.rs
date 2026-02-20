@@ -1,10 +1,12 @@
 pub mod board;
 pub mod card;
 pub mod column;
+pub mod user;
 
 pub use board::{Board, CreateBoardRequest, UpdateBoardRequest};
 pub use card::{Card, CreateCardRequest, UpdateCardRequest};
 pub use column::{BoardColumn, CreateColumnRequest, UpdateColumnRequest};
+pub use user::{AuthResponse, Claims, LoginRequest, RegisterRequest, User};
 
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;

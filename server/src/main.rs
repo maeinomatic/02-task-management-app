@@ -41,6 +41,10 @@ async fn main() {
         .await
         .expect("Failed to connect to database");
 
+    db::ensure_auth_schema(&db_pool)
+        .await
+        .expect("Failed to ensure auth schema");
+
     // Configure CORS (allow all origins to match Node.js setup)
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -73,11 +77,19 @@ async fn main() {
             routes::columns::bulk_update_column_order,
             routes::columns::update_list,
             routes::columns::delete_list,
+            routes::auth::register,
+            routes::auth::login,
+            routes::auth::me,
+            routes::auth::logout,
         ),
         components(schemas(
             models::Board,
             models::Card,
             models::BoardColumn,
+            models::User,
+            models::RegisterRequest,
+            models::LoginRequest,
+            models::AuthResponse,
             models::CreateBoardRequest,
             models::UpdateBoardRequest,
             models::CreateCardRequest,
@@ -92,6 +104,8 @@ async fn main() {
             models::ApiResponse<Vec<models::Card>>,
             models::ApiResponse<models::BoardColumn>,
             models::ApiResponse<Vec<models::BoardColumn>>,
+            models::ApiResponse<models::User>,
+            models::ApiResponse<models::AuthResponse>,
         ))
     )]
     struct ApiDoc;
@@ -102,6 +116,7 @@ async fn main() {
         .nest("/api/boards", routes::boards::router())
         .nest("/api/cards", routes::cards::router())
         .nest("/api/lists", routes::columns::router())
+        .nest("/api/auth", routes::auth::router())
         .merge(SwaggerUi::new("/swagger").url("/api/openapi.json", ApiDoc::openapi()))
         .with_state(db_pool)
         .layer(cors);

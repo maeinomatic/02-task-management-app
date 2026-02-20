@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::get,
     Json, Router,
 };
@@ -76,8 +76,10 @@ pub async fn get_card(
 )]
 pub async fn create_card(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Json(req): Json<CreateCardRequest>,
 ) -> Result<(StatusCode, Json<ApiResponse<Card>>), AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let card = handlers::cards::create_card(&pool, req).await?;
     Ok((
         StatusCode::CREATED,
@@ -105,9 +107,11 @@ pub async fn create_card(
 )]
 pub async fn update_card(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
     Json(req): Json<UpdateCardRequest>,
 ) -> Result<Json<ApiResponse<Card>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let card = handlers::cards::update_card(&pool, id, req).await?;
     Ok(Json(ApiResponse::success_with_message(
         card,
@@ -130,8 +134,10 @@ pub async fn update_card(
 )]
 pub async fn delete_card(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     handlers::cards::delete_card(&pool, id).await?;
     Ok(Json(ApiResponse::message_only(
         "Card deleted successfully".to_string(),

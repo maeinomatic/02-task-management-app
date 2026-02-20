@@ -2,19 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from './store/store';
 import { fetchBoards, deleteBoard, setCurrentBoard } from './store/slices/boardsSlice';
+import { fetchCurrentUser, logoutUser } from './store/slices/authSlice';
 import { BoardCard } from './components/Board';
 import { BoardModel } from './types';
 import './App.css';
 import CreateBoardModal from './components/CreateBoardModal';
 import BoardView from './pages/BoardView';
+import AuthScreen from './components/AuthScreen';
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
   const { boards, loading, error, currentBoard } = useSelector((state: RootState) => state.boards);
+  const { isAuthenticated, initialized, user } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
-    dispatch(fetchBoards());
+    dispatch(fetchCurrentUser());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(fetchBoards());
+    }
+  }, [dispatch, isAuthenticated]);
 
   const handleBoardClick = (board: BoardModel) => {
     dispatch(setCurrentBoard(board));
@@ -29,13 +38,34 @@ function App() {
     dispatch(deleteBoard(id));
   };
 
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    dispatch(setCurrentBoard(null));
+  };
+
+  if (!initialized) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="flex items-center justify-between px-6 py-4 bg-white shadow">
-        <h1 className="text-2xl font-bold text-gray-900">Task Management App</h1>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" onClick={handleCreateBoard}>
-          Create Board
-        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Task Management App</h1>
+          {user && <p className="text-sm text-gray-500">Signed in as {user.name}</p>}
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" onClick={handleCreateBoard}>
+            Create Board
+          </button>
+          <button className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="max-w-4xl mx-auto p-6">

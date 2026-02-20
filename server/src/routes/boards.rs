@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::get,
     Json, Router,
 };
@@ -66,9 +66,11 @@ pub async fn get_board(
 )]
 pub async fn create_board(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Json(req): Json<CreateBoardRequest>,
 ) -> Result<(StatusCode, Json<ApiResponse<Board>>), AppError> {
-    let board = handlers::boards::create_board(&pool, req).await?;
+    let user = handlers::auth::require_auth(&pool, &headers).await?;
+    let board = handlers::boards::create_board(&pool, req, user.id.to_string()).await?;
     Ok((
         StatusCode::CREATED,
         Json(ApiResponse::success_with_message(
@@ -95,9 +97,11 @@ pub async fn create_board(
 )]
 pub async fn update_board(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
     Json(req): Json<UpdateBoardRequest>,
 ) -> Result<Json<ApiResponse<Board>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     let board = handlers::boards::update_board(&pool, id, req).await?;
     Ok(Json(ApiResponse::success_with_message(
         board,
@@ -120,8 +124,10 @@ pub async fn update_board(
 )]
 pub async fn delete_board(
     State(pool): State<DbPool>,
+    headers: HeaderMap,
     Path(id): Path<i32>,
 ) -> Result<Json<ApiResponse<()>>, AppError> {
+    handlers::auth::require_auth(&pool, &headers).await?;
     handlers::boards::delete_board(&pool, id).await?;
     Ok(Json(ApiResponse::message_only(
         "Board deleted successfully".to_string(),

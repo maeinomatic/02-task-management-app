@@ -30,3 +30,25 @@ pub async fn test_connection(pool: &DbPool) -> Result<(), sqlx::Error> {
     tracing::info!("Database connection test successful");
     Ok(())
 }
+
+/// Ensure authentication schema objects exist
+pub async fn ensure_auth_schema(pool: &DbPool) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            name TEXT NOT NULL,
+            avatar_url TEXT,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+        "#,
+    )
+    .execute(pool)
+    .await?;
+
+    tracing::info!("Authentication schema ensured");
+    Ok(())
+}

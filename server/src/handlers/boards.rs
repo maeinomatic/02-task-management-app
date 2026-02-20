@@ -33,6 +33,7 @@ pub async fn get_board_by_id(pool: &DbPool, id: i32) -> Result<Board, AppError> 
 pub async fn create_board(
     pool: &DbPool,
     req: CreateBoardRequest,
+    owner_id: String,
 ) -> Result<Board, AppError> {
     // Validate title
     if req.title.trim().is_empty() {
@@ -40,12 +41,13 @@ pub async fn create_board(
     }
 
     let board = sqlx::query_as::<_, Board>(
-        "INSERT INTO board (title, description) 
-         VALUES ($1, $2) 
+           "INSERT INTO board (title, description, owner_id) 
+            VALUES ($1, $2, $3) 
          RETURNING id, title, description, owner_id, members, created_at, updated_at"
     )
     .bind(&req.title)
     .bind(&req.description)
+        .bind(owner_id)
     .fetch_one(pool)
     .await?;
 
