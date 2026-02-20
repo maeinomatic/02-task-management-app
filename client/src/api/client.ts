@@ -33,6 +33,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Handle unauthorized access
+      if (localStorage.getItem('authToken')) {
+        localStorage.setItem('authNotice', 'Your session expired. Please sign in again.');
+      }
       localStorage.removeItem('authToken');
       window.location.href = '/';
     }

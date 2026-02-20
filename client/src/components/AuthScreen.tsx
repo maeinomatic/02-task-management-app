@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { clearAuthError, loginUser, registerUser } from '../store/slices/authSlice';
@@ -6,14 +6,24 @@ import { clearAuthError, loginUser, registerUser } from '../store/slices/authSli
 export default function AuthScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((state: RootState) => state.auth);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  useEffect(() => {
+    const savedNotice = localStorage.getItem('authNotice');
+    if (savedNotice) {
+      setNotice(savedNotice);
+      localStorage.removeItem('authNotice');
+    }
+  }, []);
+
   const handleModeChange = (nextMode: 'login' | 'register') => {
     setMode(nextMode);
+    setNotice(null);
     dispatch(clearAuthError());
   };
 
@@ -35,6 +45,12 @@ export default function AuthScreen() {
         <p className="text-sm text-gray-500 mt-1">
           {mode === 'login' ? 'Sign in to continue' : 'Create your account'}
         </p>
+
+        {notice && (
+          <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            {notice}
+          </div>
+        )}
 
         <div className="mt-4 flex gap-2">
           <button
